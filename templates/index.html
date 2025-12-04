@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>遊戲中心 Game Hub</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #141e30, #243b55);
+            font-family: "Segoe UI", sans-serif;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            margin-top: 40px;
+            font-size: 48px;
+            letter-spacing: 2px;
+        }
+
+        .game-container {
+            margin-top: 40px;
+            display: grid;
+            grid-template-columns: repeat(2, 260px);
+            gap: 30px;
+        }
+
+        .game-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            padding: 20px;
+            height: 140px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.25s;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .game-card:hover {
+            background: rgba(255, 255, 255, 0.22);
+            transform: scale(1.08);
+        }
+
+        .game-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .game-desc {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+    </style>
+
+</head>
+<body>
+
+    <h1>🎮 遊戲中心 Game Hub</h1>
+
+    <div class="game-container">
+
+        <div class="game-card" onclick="location.href='whac.html'">
+            <div class="game-title">點擊小球</div>
+            <div class="game-desc">反應力挑戰，球越來越快！</div>
+        </div>
+
+        <div class="game-card" onclick="location.href='memory.html'">
+            <div class="game-title">翻牌記憶遊戲</div>
+            <div class="game-desc">訓練記憶力，配對全部卡片。</div>
+        </div>
+
+        <div class="game-card" onclick="location.href='snake.html'">
+            <div class="game-title">貪吃蛇</div>
+            <div class="game-desc">吃食物、變長，別撞牆！</div>
+        </div>
+
+        <div class="game-card" onclick="location.href='dino.html'">
+            <div class="game-title">Dino 跑酷</div>
+            <div class="game-desc">跳躍閃障礙，跑越久分越高。</div>
+        </div>
+
+    </div>
+
+</body>
+</html>

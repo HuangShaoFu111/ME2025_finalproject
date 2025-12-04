@@ -1,0 +1,109 @@
+/* ===== 基本頁面樣式 ===== */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", sans-serif;
+    background: linear-gradient(135deg, #0d1b2a, #1b263b);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: white;
+}
+
+/* ===== 標題 ===== */
+.title {
+    margin-top: 20px;
+    font-size: 36px;
+}
+
+/* ===== 上方控制面板 ===== */
+.panel {
+    margin: 15px 0;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    font-size: 18px;
+}
+
+.panel button {
+    padding: 8px 16px;
+    background: #ffd84d;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.panel button:hover {
+    background: #ffca2a;
+}
+
+/* ===== Canvas 容器（★ 只需要這一次） ===== */
+.game-container {
+    position: relative;
+    display: inline-block;
+}
+
+/* ===== 遊戲畫布 ===== */
+canvas {
+    background: #000;
+    border: 3px solid white;
+    border-radius: 12px;
+}
+
+/* ===== GAME OVER PANEL ===== */
+#gameOverPanel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 600px;
+    height: 250px;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    border-radius: 12px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ===== Game Over 彈窗 ===== */
+.panel-box {
+    background: #ffffff;
+    padding: 25px 40px;
+    border-radius: 12px;
+    text-align: center;
+    color: black;
+    box-shadow: 0 0 20px rgba(255,255,255,0.4);
+}
+
+.panel-box h2 {
+    margin: 0 0 15px;
+    font-size: 32px;
+}
+
+.panel-box p {
+    margin: 6px 0;
+    font-size: 20px;
+}
+
+/* ===== Restart 按鈕 ===== */
+.panel-box button {
+    padding: 10px 20px;
+    margin-top: 12px;
+    background: #4cd964;
+    color: black;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    transition: 0.2s;
+}
+
+.panel-box button:hover {
+    background: #49c65a;
+}

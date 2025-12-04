@@ -1,0 +1,68 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", sans-serif;
+    background: radial-gradient(circle at center, #1b2735 0%, #0d1b2a 80%);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #ffffff;
+}
+
+.title {
+    margin-top: 25px;
+    font-size: 48px;
+    letter-spacing: 2px;
+    font-weight: 700;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.6);
+}
+
+.info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin: 15px 0;
+    font-size: 20px;
+}
+
+button {
+    padding: 8px 16px;
+    background: #ffd84d;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+}
+
+button:hover {
+    background: #ffca2a;
+    transform: translateY(-2px);
+}
+
+/* === 遊戲區域 === */
+
+canvas {
+    border: 4px solid rgba(255,255,255,0.7);
+    border-radius: 10px;
+    background: #000000;
+    box-shadow: 
+        0 0 20px rgba(255,255,255,0.2),
+        inset 0 0 25px rgba(255,255,255,0.1);
+}
+
+/* === 食物動畫 === */
+
+.food {
+    animation: pulse 0.6s infinite alternate ease-in-out;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); filter: brightness(1); }
+    100% { transform: scale(1.25); filter: brightness(1.8); }
+}
+
+/* === 蛇的顏色（由 JS 畫出，但是我們提供更柔和的風格建議） === */

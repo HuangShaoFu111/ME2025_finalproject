@@ -1,0 +1,104 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", sans-serif;
+    background: #0d1b2a;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 粒子背景 */
+.particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: floatUp 8s linear infinite;
+    opacity: 0.7;
+}
+
+@keyframes floatUp {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 0.6;
+    }
+    100% {
+        transform: translateY(-800px) scale(0.3);
+        opacity: 0;
+    }
+}
+
+.title {
+    margin-top: 20px;
+    font-size: 36px;
+}
+
+.panel {
+    display: flex;
+    gap: 20px;
+    margin: 15px;
+    align-items: center;
+    font-size: 18px;
+}
+
+button {
+    padding: 8px 16px;
+    background: #ffd84d;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #ffca2a;
+}
+
+#gameArea {
+    width: 600px;
+    height: 350px;
+    border: 3px solid white;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    background: rgba(255,255,255,0.08);
+}
+
+/* 小球 */
+#ball {
+    width: 50px;
+    height: 50px;
+    background: red;
+    border-radius: 50%;
+    position: absolute;
+    display: none;
+    cursor: pointer;
+}
+
+/* 小球爆炸動畫 */
+@keyframes explode {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(2.8);
+        opacity: 0;
+    }
+}
+
+.explode-effect {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: radial-gradient(circle, #ffeb3b, #ff5722);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: explode 0.45s ease-out forwards;
+}
