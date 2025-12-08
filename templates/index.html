@@ -60,6 +60,21 @@
             font-size: 14px;
             opacity: 0.9;
         }
+        
+        /* 增加排行榜按鈕樣式 */
+        .btn-leaderboard {
+            margin-top: 40px;
+            padding: 12px 24px;
+            background: #ffd84d;
+            color: black;
+            font-weight: bold;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: 0.2s;
+        }
+        .btn-leaderboard:hover {
+            background: #ffca2a;
+        }
     </style>
 
 </head>
@@ -69,27 +84,30 @@
 
     <div class="game-container">
 
-        <div class="game-card" onclick="location.href='whac.html'">
+        <div class="game-card" onclick="location.href='/game/whac'">
             <div class="game-title">點擊小球</div>
             <div class="game-desc">反應力挑戰，球越來越快！</div>
         </div>
 
-        <div class="game-card" onclick="location.href='memory.html'">
+        <div class="game-card" onclick="location.href='/game/memory'">
             <div class="game-title">翻牌記憶遊戲</div>
             <div class="game-desc">訓練記憶力，配對全部卡片。</div>
         </div>
 
-        <div class="game-card" onclick="location.href='snake.html'">
+        <div class="game-card" onclick="location.href='/game/snake'">
             <div class="game-title">貪吃蛇</div>
             <div class="game-desc">吃食物、變長，別撞牆！</div>
         </div>
 
-        <div class="game-card" onclick="location.href='dino.html'">
+        <div class="game-card" onclick="location.href='/game/dino'">
             <div class="game-title">Dino 跑酷</div>
             <div class="game-desc">跳躍閃障礙，跑越久分越高。</div>
         </div>
 
     </div>
+
+    <a href="/leaderboard" class="btn-leaderboard">🏆 查看排行榜</a>
+    <a href="/logout" style="margin-top: 20px; color: #aaa; text-decoration: none;">登出</a>
 
 </body>
 </html>

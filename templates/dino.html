@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dino 跑酷遊戲</title>
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="../static/dino.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='dino.css') }}">
 </head>
 <body>
 
@@ -15,14 +14,12 @@
     <div class="panel">
         <div>分數：<span id="score">0</span></div>
         <button id="startBtn">開始遊戲</button>
-        <button onclick="location.href='index.html'">返回主選單</button>
+        <button onclick="location.href='/lobby'">返回大廳</button>
     </div>
 
-    <!-- 遊戲畫布 -->
     <div class="game-container">
         <canvas id="gameCanvas" width="600" height="250"></canvas>
 
-        <!-- Game Over Panel 放這裡！ -->
         <div id="gameOverPanel" class="hidden">
             <div class="panel-box">
                 <h2>GAME OVER</h2>
@@ -33,9 +30,7 @@
         </div>
     </div>
 
-
-    <!-- JS -->
-    <script src="../static/dino.js"></script>
+    <script src="{{ url_for('static', filename='dino.js') }}"></script>
 
 </body>
 </html>

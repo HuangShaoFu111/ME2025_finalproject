@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>點擊小球遊戲</title>
-    <link rel="stylesheet" href="../static/whac.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='whac.css') }}">
 </head>
 <body>
 
@@ -14,13 +14,13 @@
         <div>時間：<span id="time">30</span>s</div>
         <div>分數：<span id="score">0</span></div>
         <button id="startBtn">開始遊戲</button>
-        <button onclick="location.href='index.html'">返回首頁</button>
+        <button onclick="location.href='/lobby'">返回大廳</button>
     </div>
 
     <div id="gameArea">
         <div id="ball"></div>
     </div>
 
-    <script src="../static/whac.js"></script>
+    <script src="{{ url_for('static', filename='whac.js') }}"></script>
 </body>
 </html>

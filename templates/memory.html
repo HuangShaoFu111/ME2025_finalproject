@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>記憶翻牌遊戲</title>
-    <link rel="stylesheet" href="../static/memory.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='memory.css') }}">
 </head>
 <body>
 
@@ -14,10 +14,11 @@
         <div>配對次數：<span id="moves">0</span></div>
         <div>時間：<span id="timer">0</span> 秒</div>
         <button id="restartBtn">重新開始</button>
+        <button onclick="location.href='/lobby'">返回大廳</button>
     </div>
 
     <div id="gameBoard" class="board"></div>
 
-    <script src="../static/memory.js"></script>
+    <script src="{{ url_for('static', filename='memory.js') }}"></script>
 </body>
 </html>
