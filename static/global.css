@@ -146,7 +146,7 @@ input:focus {
     background: #1e293b;
     min-width: 180px;
     border-radius: 12px;
-    overflow: hidden;
+    /* overflow: hidden; */
     box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     border: 1px solid var(--glass-border);
     animation: fadeIn 0.2s ease;
@@ -177,12 +177,13 @@ input:focus {
     content: "";
     position: absolute;
     /* 向上延伸 20px，填補頭像與選單之間的空隙 */
-    top: -50px; 
+    top: -15px; 
     left: 0;
     width: 100%;
-    height: 50px;
+    height: 30px;
     background: transparent; /* 透明背景，看不見但摸得到 */
     display: block;
+    
 }
 
 /* === 動畫 === */
