@@ -6,6 +6,12 @@
     <title>Retro Arcade Hub</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
     <style>
+        /* 由於 body 居中對齊，我們調整 h1 的下邊距以適應新的 lobby-wrapper-main 佈局 */
+        h1 {
+             margin-bottom: 0 !important; 
+        }
+        
+        /* 遊戲網格樣式 - 保持不變 (應確保這部分在 <style> 區塊內) */
         .game-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -75,14 +81,13 @@
         <div class="user-profile-btn" onclick="location.href='/profile'">
             <div class="avatar-display">
                 {% if user.avatar == 'default.png' %}
-                    <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=0f172a&color=fff" alt="User Avatar">
+                    <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=0f172a&color=fff" alt="User">
                 {% else %}
-                    <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" alt="User Avatar">
+                    <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" alt="User">
                 {% endif %}
             </div>
             <span class="username-display">{{ user.username }}</span>
         </div>
-        
         <div class="dropdown-content">
             <div>Hi, {{ user.username }}</div>
             <a href="/profile">⚙️ 設定與頭貼</a>
@@ -91,35 +96,106 @@
     </div>
 
     <h1>⚡ ARCADE HUB ⚡</h1>
-    <p style="color: var(--text-muted); margin-top: -20px; margin-bottom: 40px;">Select your challenge</p>
+    <p style="color: var(--text-muted); margin-top: 10px; margin-bottom: 40px;">Select your challenge</p>
 
-    <div class="game-grid">
-        <div class="game-card" onclick="location.href='/game/whac'">
-            <span class="game-icon">🔴</span>
-            <div class="game-title">Whac-A-Ball</div>
-            <div class="game-desc">極限反應挑戰<br>球體速度將隨時間越來越快</div>
+    <div class="lobby-wrapper-main">
+        
+        <div class="personal-lobby-container glass-panel">
+            <h2 style="text-align: center; margin-top: 0; margin-bottom: 25px; color: var(--primary);">🎯 我的最高得分</h2>
+            <div id="myLobbyScores">
+                <div style="text-align:center; color: var(--text-muted);">載入中...</div>
+            </div>
         </div>
+        
+        <div class="game-grid-container">
+            
+            <div class="game-grid">
+                <div class="game-card" onclick="location.href='/game/whac'">
+                    <span class="game-icon">🔴</span>
+                    <div class="game-title">Whac-A-Ball</div>
+                    <div class="game-desc">極限反應挑戰<br>球體速度將隨時間越來越快</div>
+                </div>
 
-        <div class="game-card" onclick="location.href='/game/memory'">
-            <span class="game-icon">🃏</span>
-            <div class="game-title">Memory Flip</div>
-            <div class="game-desc">腦力記憶對決<br>以最少步數完成卡片配對</div>
-        </div>
+                <div class="game-card" onclick="location.href='/game/memory'">
+                    <span class="game-icon">🃏</span>
+                    <div class="game-title">Memory Flip</div>
+                    <div class="game-desc">腦力記憶對決<br>以最少步數完成卡片配對</div>
+                </div>
 
-        <div class="game-card" onclick="location.href='/game/snake'">
-            <span class="game-icon">🐍</span>
-            <div class="game-title">Neon Snake</div>
-            <div class="game-desc">經典貪食蛇<br>在無限邊界中吞噬與生長</div>
-        </div>
+                <div class="game-card" onclick="location.href='/game/snake'">
+                    <span class="game-icon">🐍</span>
+                    <div class="game-title">Neon Snake</div>
+                    <div class="game-desc">經典貪食蛇<br>在無限邊界中吞噬與生長</div>
+                </div>
 
-        <div class="game-card" onclick="location.href='/game/dino'">
-            <span class="game-icon">🦖</span>
-            <div class="game-title">Dino Run</div>
-            <div class="game-desc">恐龍跑酷<br>跳躍障礙，衝擊最高積分</div>
+                <div class="game-card" onclick="location.href='/game/dino'">
+                    <span class="game-icon">🦖</span>
+                    <div class="game-title">Dino Run</div>
+                    <div class="game-desc">恐龍跑酷<br>跳躍障礙，衝擊最高積分</div>
+                </div>
+            </div>
+
+            <a href="/leaderboard" class="btn-leaderboard">🏆 查看英雄榜 Leaderboard</a>
         </div>
     </div>
+    <script>
+        // 確保遊戲名稱和 key 匹配
+        const GAMES = [
+            { name: 'Neon Snake', key: 'snake', icon: '🐍' },
+            { name: 'Dino Run', key: 'dino', icon: '🦖' },
+            { name: 'Whac-A-Ball', key: 'whac', icon: '🔴' },
+            { name: 'Memory Flip', key: 'memory', icon: '🃏' }
+        ];
 
-    <a href="/leaderboard" class="btn-leaderboard">🏆 查看英雄榜 Leaderboard</a>
+        document.addEventListener("DOMContentLoaded", fetchAllBestScores);
 
+        // 載入每個遊戲的最高分並渲染到左側欄
+        function fetchAllBestScores() {
+            const container = document.getElementById("myLobbyScores");
+            container.innerHTML = '<div style="text-align:center; color: var(--text-muted);">載入中...</div>';
+            
+            fetch('/api/get_my_best_scores')
+                .then(res => res.json())
+                .then(scoresDict => {
+                    container.innerHTML = '';
+                    let html = '';
+                    
+                    GAMES.forEach(game => {
+                        const scoreData = scoresDict[game.key];
+                        let contentHtml;
+
+                        if (scoreData && scoreData.score !== undefined) {
+                            // 有紀錄
+                            contentHtml = `
+                                <div class="score-display-lobby">
+                                    <span class="score-value">${scoreData.score}</span>
+                                    <span style="font-size: 12px; color: var(--text-muted);">${scoreData.timestamp.substring(5, 10)}</span>
+                                </div>
+                            `;
+                        } else {
+                            // 無紀錄: 顯示 '快去試試看' 連結
+                            contentHtml = `
+                                <div class="score-display-lobby">
+                                    <a href="/game/${game.key}" style="font-size: 12px; color: var(--accent); text-decoration: none;">快去試試看!</a>
+                                </div>
+                            `;
+                        }
+
+                        html += `
+                            <div class="personal-score-item">
+                                <div class="game-name-lobby">${game.icon} ${game.name}</div>
+                                ${contentHtml}
+                            </div>
+                        `;
+                    });
+
+                    container.innerHTML = html;
+                })
+                .catch(err => {
+                    console.error("載入個人戰績失敗:", err);
+                    container.innerHTML = '<div style="text-align:center; color: #ef4444;">載入失敗，請檢查登入狀態及伺服器連線。</div>';
+                });
+        }
+    </script>
 </body>
 </html>

@@ -153,6 +153,30 @@ def submit_score():
     database.insert_score(session['user_id'], data.get('game_name'), data.get('score'))
     return jsonify({'status': 'success'})
 
+@app.route('/api/get_my_rank/<game_name>')
+def get_my_rank(game_name):
+    """ 獲取當前登入使用者在特定遊戲中的最高戰績 (用於排行榜頁面左側) """
+    user = get_current_user()
+    if not user:
+        # 如果使用者未登入，返回空列表
+        return jsonify([])
+        
+    scores = database.get_user_scores_by_game(user['id'], game_name)
+    
+    # 返回分數列表，格式為: [{"score": 100, "timestamp": "..."}]
+    return jsonify(scores)
+
+@app.route('/api/get_my_best_scores')
+def get_my_best_scores():
+    """ 獲取當前登入使用者在所有遊戲中的最高戰績 (Lobby 專用) """
+    user = get_current_user()
+    if not user:
+        return jsonify({})
+        
+    scores_dict = database.get_all_best_scores_by_user(user['id'])
+    
+    return jsonify(scores_dict)
+
 @app.route('/api/get_rank/<game_name>')
 def get_rank(game_name):
     scores = database.get_leaderboard(game_name)

@@ -114,5 +114,40 @@ def get_leaderboard(game_name):
     conn.close()
     return [dict(row) for row in scores]
 
+
+def get_user_scores_by_game(user_id, game_name):
+    """ 獲取特定使用者在某遊戲中的最高分數紀錄 (用於排行榜頁面) """
+    conn = get_db_connection()
+    query = '''
+        SELECT score, timestamp 
+        FROM scores 
+        WHERE user_id = ? AND game_name = ? 
+        ORDER BY score DESC, timestamp DESC
+        LIMIT 1 
+    '''
+    scores = conn.execute(query, (user_id, game_name)).fetchall()
+    conn.close()
+    return [dict(score) for score in scores]
+
+def get_all_best_scores_by_user(user_id):
+    """ 獲取特定使用者在所有遊戲中的最高分數 (Lobby 專用) """
+    conn = get_db_connection()
+    query = '''
+        SELECT game_name, score, timestamp 
+        FROM scores s
+        WHERE s.user_id = ?
+        AND s.score = (
+            SELECT MAX(score) 
+            FROM scores 
+            WHERE user_id = s.user_id AND game_name = s.game_name
+        )
+        GROUP BY game_name
+        ORDER BY game_name
+    '''
+    scores = conn.execute(query, (user_id,)).fetchall()
+    conn.close()
+    # 將結果轉換為以 game_name 為鍵的字典
+    return {row['game_name']: dict(row) for row in scores}
+
 if __name__ == '__main__':
     init_db()
