@@ -23,6 +23,7 @@ def allowed_file(filename):
 # --- Helper: 取得當前登入者資訊 ---
 def get_current_user():
     if 'user_id' in session:
+        # 請確保 database.get_user_by_id 函式存在
         return database.get_user_by_id(session['user_id'])
     return None
 
@@ -79,6 +80,7 @@ def profile():
         if action == 'update_id':
             new_username = request.form['username']
             if new_username:
+                # 請確保 database.update_username 函式存在
                 if database.update_username(user['id'], new_username):
                     session['username'] = new_username # 更新 session
                     success = "使用者名稱已更新！"
@@ -99,6 +101,7 @@ def profile():
                 elif file and allowed_file(file.filename):
                     filename = secure_filename(f"user_{user['id']}_{file.filename}")
                     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    # 請確保 database.update_avatar 函式存在
                     database.update_avatar(user['id'], filename)
                     success = "頭貼更新成功！"
                     user = get_current_user() # 重新取得資料
@@ -107,6 +110,7 @@ def profile():
 
         # 3. 刪除帳號
         elif action == 'delete_account':
+            # 請確保 database.delete_user 函式存在
             database.delete_user(user['id'])
             session.clear()
             return redirect(url_for('home'))
@@ -122,6 +126,7 @@ def register():
         password = request.form['password']
         if not username or not password:
             return render_template('register.html', error="欄位不可為空")
+        # 請確保 database.create_user 函式存在
         if database.create_user(username, password):
             return redirect(url_for('home'))
         else:
@@ -132,6 +137,7 @@ def register():
 def login():
     username = request.form['username']
     password = request.form['password']
+    # 請確保 database.verify_user 函式存在
     user = database.verify_user(username, password)
     if user:
         session['user_id'] = user['id']
@@ -150,8 +156,17 @@ def submit_score():
     if 'user_id' not in session:
         return jsonify({'status': 'error', 'message': '未登入'}), 401
     data = request.get_json()
+    # 請確保 database.insert_score 函式存在
     database.insert_score(session['user_id'], data.get('game_name'), data.get('score'))
     return jsonify({'status': 'success'})
+
+# 全球排行榜 API (用於 leaderboard.html)
+@app.route('/api/get_rank/<game_name>')
+def get_rank(game_name):
+    # 請確保 database.get_leaderboard 函式存在
+    scores = database.get_leaderboard(game_name)
+    return jsonify(scores)
+
 
 @app.route('/api/get_my_rank/<game_name>')
 def get_my_rank(game_name):
@@ -161,6 +176,7 @@ def get_my_rank(game_name):
         # 如果使用者未登入，返回空列表
         return jsonify([])
         
+    # 請確保 database.get_user_scores_by_game 函式存在
     scores = database.get_user_scores_by_game(user['id'], game_name)
     
     # 返回分數列表，格式為: [{"score": 100, "timestamp": "..."}]
@@ -168,19 +184,17 @@ def get_my_rank(game_name):
 
 @app.route('/api/get_my_best_scores')
 def get_my_best_scores():
-    """ 獲取當前登入使用者在所有遊戲中的最高戰績 (Lobby 專用) """
+    """ 獲取當前登入使用者在所有遊戲中的最高戰績及排名 (Lobby 專用) """
     user = get_current_user()
     if not user:
         return jsonify({})
         
-    scores_dict = database.get_all_best_scores_by_user(user['id'])
+    # *** 步驟二：更新 API 呼叫以包含排名計算 ***
+    # 呼叫 database.py 中新增的函式
+    scores_dict = database.get_all_best_scores_by_user_with_rank(user['id'])
     
     return jsonify(scores_dict)
 
-@app.route('/api/get_rank/<game_name>')
-def get_rank(game_name):
-    scores = database.get_leaderboard(game_name)
-    return jsonify(scores)
-
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # 設置 use_reloader=False 以避免兩次初始化 DB
+    app.run(debug=True, port=5000, use_reloader=True)

@@ -54,7 +54,7 @@ def create_user(username, password):
 def verify_user(username, password):
     conn = get_db_connection()
     user = conn.execute('SELECT * FROM users WHERE username = ? AND password = ?', 
-                        (username, password)).fetchone()
+                         (username, password)).fetchone()
     conn.close()
     return user
 
@@ -114,7 +114,6 @@ def get_leaderboard(game_name):
     conn.close()
     return [dict(row) for row in scores]
 
-
 def get_user_scores_by_game(user_id, game_name):
     """ 獲取特定使用者在某遊戲中的最高分數紀錄 (用於排行榜頁面) """
     conn = get_db_connection()
@@ -129,25 +128,49 @@ def get_user_scores_by_game(user_id, game_name):
     conn.close()
     return [dict(score) for score in scores]
 
-def get_all_best_scores_by_user(user_id):
-    """ 獲取特定使用者在所有遊戲中的最高分數 (Lobby 專用) """
+def get_all_best_scores_by_user_with_rank(user_id):
+    """ 獲取特定使用者在所有遊戲中的最高分數及全球排名 (Lobby 專用) """
     conn = get_db_connection()
-    query = '''
-        SELECT game_name, score, timestamp 
-        FROM scores s
-        WHERE s.user_id = ?
-        AND s.score = (
-            SELECT MAX(score) 
-            FROM scores 
-            WHERE user_id = s.user_id AND game_name = s.game_name
-        )
-        GROUP BY game_name
-        ORDER BY game_name
-    '''
-    scores = conn.execute(query, (user_id,)).fetchall()
+    game_names = ['snake', 'dino', 'whac', 'memory']
+    results = {}
+
+    for game_name in game_names:
+        # 1. 獲取該使用者的最高分
+        user_best_score_query = '''
+            SELECT score, timestamp
+            FROM scores
+            WHERE user_id = ? AND game_name = ?
+            ORDER BY score DESC
+            LIMIT 1
+        '''
+        user_score_row = conn.execute(user_best_score_query, (user_id, game_name)).fetchone()
+
+        if user_score_row:
+            user_score = user_score_row['score']
+
+            # 2. 計算全球排名
+            # Rank = (Count of distinct users with a max score > current user's max score) + 1
+            rank_query = '''
+                SELECT COUNT(DISTINCT user_id) + 1 AS rank
+                FROM (
+                    SELECT user_id, MAX(score) AS max_score
+                    FROM scores
+                    WHERE game_name = ?
+                    GROUP BY user_id
+                ) AS T
+                WHERE T.max_score > ?
+            '''
+            rank_row = conn.execute(rank_query, (game_name, user_score)).fetchone()
+            
+            # 3. 組合結果
+            results[game_name] = {
+                'score': user_score,
+                'timestamp': user_score_row['timestamp'],
+                'rank': rank_row['rank']
+            }
+
     conn.close()
-    # 將結果轉換為以 game_name 為鍵的字典
-    return {row['game_name']: dict(row) for row in scores}
+    return results
 
 if __name__ == '__main__':
     init_db()

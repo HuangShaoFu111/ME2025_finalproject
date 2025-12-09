@@ -6,12 +6,13 @@
     <title>Retro Arcade Hub</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
     <style>
-        /* 由於 body 居中對齊，我們調整 h1 的下邊距以適應新的 lobby-wrapper-main 佈局 */
+        /* 由於我們在 body 上使用了 flex-direction: column; align-items: center; 
+           因此，我們需要移除主標題原有的 margin-bottom，讓它與新的 wrapper 更好地對齊。 */
         h1 {
              margin-bottom: 0 !important; 
         }
         
-        /* 遊戲網格樣式 - 保持不變 (應確保這部分在 <style> 區塊內) */
+        /* 遊戲網格樣式 - 保持不變 */
         .game-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -165,11 +166,11 @@
                         let contentHtml;
 
                         if (scoreData && scoreData.score !== undefined) {
-                            // 有紀錄
+                            // 有紀錄 (顯示實際排名和分數)
                             contentHtml = `
                                 <div class="score-display-lobby">
+                                    <span style="font-size: 1.3em; font-weight: bold; color: var(--gold);">#${scoreData.rank}</span>
                                     <span class="score-value">${scoreData.score}</span>
-                                    <span style="font-size: 12px; color: var(--text-muted);">${scoreData.timestamp.substring(5, 10)}</span>
                                 </div>
                             `;
                         } else {
