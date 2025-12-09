@@ -4,119 +4,150 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>個人設定 - Retro Arcade Hub</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
     <style>
-        body {
-            background: linear-gradient(135deg, #2c3e50, #4ca1af);
-            font-family: "Segoe UI", sans-serif;
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-        .container {
-            background: rgba(0, 0, 0, 0.5);
-            padding: 40px;
-            border-radius: 15px;
-            width: 400px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-        h2 { margin-bottom: 30px; border-bottom: 2px solid #ffd84d; display: inline-block; padding-bottom: 10px; }
-        
-        /* 頭貼顯示 */
-        .avatar-preview {
+        /* 本頁面專屬的微調樣式 */
+        .avatar-lg {
             width: 120px;
             height: 120px;
             border-radius: 50%;
-            border: 4px solid #ffd84d;
             object-fit: cover;
-            margin-bottom: 20px;
-            background: white;
+            border: 3px solid var(--accent);
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+            margin-bottom: 15px;
+            transition: transform 0.3s;
+        }
+        .avatar-lg:hover {
+            transform: scale(1.05) rotate(5deg);
         }
 
-        /* 表單區塊 */
-        .section {
+        .section-title {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        /* 檔案上傳按鈕美化 */
+        input[type="file"]::file-selector-button {
             background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        input[type="text"], input[type="file"] {
-            width: 90%;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-            border: none;
-        }
-        button {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 5px;
+            color: var(--text-main);
+            border: 1px solid var(--glass-border);
+            border-radius: 6px;
+            padding: 5px 10px;
+            margin-right: 15px;
             cursor: pointer;
-            font-weight: bold;
-            transition: 0.2s;
+            transition: 0.3s;
         }
-        .btn-action { background: #4cd964; color: white; width: 100%; margin-top: 5px; }
-        .btn-action:hover { background: #40b653; }
-        
-        .btn-danger { background: #ff6b6b; color: white; margin-top: 10px; width: 100%; }
-        .btn-danger:hover { background: #ff5252; }
+        input[type="file"]::file-selector-button:hover {
+            background: var(--accent);
+            color: black;
+        }
 
-        .back-link { margin-top: 20px; display: block; color: #ffd84d; text-decoration: none; }
+        /* 危險區域樣式覆寫 */
+        .danger-zone {
+            margin-top: 30px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .btn-danger {
+            width: 100%;
+            background: linear-gradient(135deg, #ef4444, #991b1b);
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
+        .btn-danger:hover {
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
+            transform: translateY(-2px);
+        }
 
-        .msg { padding: 10px; margin-bottom: 10px; border-radius: 5px; }
-        .error { background: rgba(255, 0, 0, 0.3); color: #ffcccc; }
-        .success { background: rgba(0, 255, 0, 0.2); color: #ccffcc; }
+        /* 訊息提示框 */
+        .msg {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            text-align: center;
+        }
+        .msg.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .msg.success {
+            background: rgba(34, 197, 94, 0.2);
+            color: #86efac;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
     </style>
 </head>
-<body>
+<body style="justify-content: center;">
 
-    <div class="container">
-        <h2>⚙️ 個人設定</h2>
-
+    <div class="glass-panel" style="width: 450px; text-align: center; padding: 40px;">
+        
+        <h2>⚙️ SETTINGS</h2>
+        
         {% if error %}
-            <div class="msg error">{{ error }}</div>
+            <div class="msg error">⚠️ {{ error }}</div>
         {% endif %}
         {% if success %}
-            <div class="msg success">{{ success }}</div>
+            <div class="msg success">✅ {{ success }}</div>
         {% endif %}
 
-        {% if user.avatar == 'default.png' %}
-            <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=random" class="avatar-preview">
-        {% else %}
-            <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" class="avatar-preview">
-        {% endif %}
-        <h3>{{ user.username }}</h3>
+        <div style="margin-bottom: 30px;">
+            {% if user.avatar == 'default.png' %}
+                <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=0f172a&color=fff" class="avatar-lg">
+            {% else %}
+                <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" class="avatar-lg">
+            {% endif %}
+            
+            <div style="font-family: 'Orbitron'; font-size: 24px; color: var(--gold); letter-spacing: 1px;">
+                {{ user.username }}
+            </div>
+        </div>
 
-        <div class="section">
-            <form action="/profile" method="POST" enctype="multipart/form-data">
+        <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 25px 0;">
+
+        <div style="margin-bottom: 25px;">
+            <div class="section-title">更換頭像 (Change Avatar)</div>
+            <form action="/profile" method="POST" enctype="multipart/form-data" style="display: flex; gap: 10px; flex-direction: column;">
                 <input type="hidden" name="action" value="upload_avatar">
-                <label>更換頭貼圖片：</label>
                 <input type="file" name="file" accept="image/*" required>
-                <button type="submit" class="btn-action">上傳並更新</button>
+                <button type="submit" class="btn-primary" style="width: 100%;">
+                    ⬆️ 上傳更新 (Update)
+                </button>
             </form>
         </div>
 
-        <div class="section">
-            <form action="/profile" method="POST">
+        <div style="margin-bottom: 25px;">
+            <div class="section-title">顯示名稱 (Display Name)</div>
+            <form action="/profile" method="POST" style="display: flex; gap: 10px;">
                 <input type="hidden" name="action" value="update_id">
-                <label>更改顯示名稱：</label>
-                <input type="text" name="username" value="{{ user.username }}" required>
-                <button type="submit" class="btn-action">儲存新名稱</button>
+                <input type="text" name="username" value="{{ user.username }}" required placeholder="輸入新名稱">
+                <button type="submit" class="btn-primary" style="white-space: nowrap;">
+                    💾 儲存
+                </button>
             </form>
         </div>
 
-        <div class="section" style="border: 1px solid #ff6b6b;">
-            <p style="color: #ff6b6b; margin: 0 0 10px 0;">危險區域</p>
-            <form action="/profile" method="POST" onsubmit="return confirm('確定要刪除帳號嗎？此動作無法復原！');">
+        <div class="danger-zone">
+            <div style="color: #fca5a5; font-weight: bold; margin-bottom: 10px; font-size: 14px;">⚠️ DANGER ZONE</div>
+            <form action="/profile" method="POST" onsubmit="return confirm('確定要刪除帳號嗎？所有分數紀錄都將消失且無法復原！');">
                 <input type="hidden" name="action" value="delete_account">
-                <button type="submit" class="btn-danger">刪除帳號</button>
+                <button type="submit" class="btn btn-danger">
+                    🗑️ 刪除帳號 (Delete Account)
+                </button>
             </form>
         </div>
 
-        <a href="/lobby" class="back-link">← 返回遊戲大廳</a>
+        <div style="margin-top: 30px;">
+            <a href="/lobby" style="color: var(--text-muted); text-decoration: none; font-size: 14px; transition: 0.3s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='var(--text-muted)'">
+                ← Back to Arcade Hall
+            </a>
+        </div>
     </div>
 
 </body>
