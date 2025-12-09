@@ -79,14 +79,17 @@
 <body>
 
     <div class="user-menu">
-        <div class="avatar-btn" onclick="location.href='/lobby'">
-            {% if user.avatar == 'default.png' %}
-                <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=0f172a&color=fff">
-            {% else %}
-                <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}">
-            {% endif %}
+        <div class="user-profile-btn" onclick="location.href='/lobby'"> 
+            <div class="avatar-display">
+                {% if user.avatar == 'default.png' %}
+                    <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=0f172a&color=fff" alt="User Avatar">
+                {% else %}
+                    <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" alt="User Avatar">
+                {% endif %}
+            </div>
+            <span class="username-display">{{ user.username }}</span>
         </div>
-    </div>
+        </div>
 
     <h1>🏆 HALL OF FAME</h1>
 
@@ -116,7 +119,12 @@
 
         function loadRank(gameName) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            if(event) event.target.classList.add('active');
+            
+            // 修正 JavaScript 錯誤：不再依賴全域 event 變數
+            const targetButton = document.querySelector(`.tab-btn[onclick*="'${gameName}'"]`);
+            if (targetButton) {
+                targetButton.classList.add('active');
+            }
 
             const titleMap = { 'snake': 'Neon Snake', 'dino': 'Dino Run', 'whac': 'Whac-A-Ball', 'memory': 'Memory Flip' };
             document.getElementById('gameTitle').textContent = titleMap[gameName];

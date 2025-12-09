@@ -117,7 +117,7 @@ input:focus {
     right: 30px;
     z-index: 1000;
 }
-.avatar-btn {
+/* .avatar-btn {
     width: 55px;
     height: 55px;
     border-radius: 50%;
@@ -137,7 +137,50 @@ input:focus {
     border-color: var(--accent);
     box-shadow: 0 0 15px var(--accent);
     transform: scale(1.05);
+} */
+
+/* 新增：頭像 + 名稱 的橫向按鈕樣式 */
+.user-profile-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 15px 8px 8px; /* 調整內邊距，讓頭像更靠邊 */
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 50px; /* 橢圓形按鈕 */
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
+
+.user-profile-btn:hover {
+    border-color: var(--primary);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
+    transform: translateY(-1px);
+}
+
+/* 頭像容器 */
+.avatar-display {
+    width: 40px; /* 稍微縮小頭像 */
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0; 
+}
+
+.avatar-display img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 玩家名稱文字 */
+.username-display {
+    color: var(--text-main);
+    font-weight: 600;
+    font-size: 16px;
+    white-space: nowrap; 
+}
+
 .dropdown-content {
     display: none;
     position: absolute;
@@ -181,7 +224,7 @@ input:focus {
     left: 0;
     width: 100%;
     height: 30px;
-    background: transparent; /* 透明背景，看不見但摸得到 */
+    background: transparent; /* 透明背景*/
     display: block;
     
 }
