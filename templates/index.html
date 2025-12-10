@@ -74,6 +74,46 @@
             color: black;
             box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
         }
+
+        /* === 浮動支持按鈕 (從 global.css 移入) === */
+        .fixed-support-btn {
+            position: fixed; /* 固定在視窗上，不隨捲軸移動 */
+            bottom: 30px; /* 距離底部 30px */
+            right: 30px; /* 距離右側 30px */
+            z-index: 1000; /* 確保它浮在所有內容之上 */
+            cursor: pointer;
+            text-decoration: none;
+            
+            /* 外觀樣式 */
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 30px;
+            
+            background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), var(--glass-bg)); /* 霓虹漸變背景 */
+            border: 2px solid var(--primary);
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 15px var(--primary);
+            transition: all 0.3s ease;
+        }
+
+        .fixed-support-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.6), 0 0 25px var(--accent);
+        }
+
+        .fixed-support-btn span {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: 1px;
+        }
+
+        .fixed-support-btn .icon {
+            font-size: 24px;
+            color: var(--gold); /* 使用金色讓鑽石圖標更突出 */
+            text-shadow: 0 0 10px var(--gold);
+        }
     </style>
 </head>
 <body>
@@ -139,6 +179,7 @@
             <a href="/leaderboard" class="btn-leaderboard">🏆 查看英雄榜 Leaderboard</a>
         </div>
     </div>
+    
     <script>
         // 確保遊戲名稱和 key 匹配
         const GAMES = [
@@ -198,5 +239,10 @@
                 });
         }
     </script>
+    
+    <a href="{{ url_for('shop_page') }}" class="fixed-support-btn">
+        <span class="icon">💎</span>
+        <span>支持我們</span>
+    </a>
 </body>
 </html>

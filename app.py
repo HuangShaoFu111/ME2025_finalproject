@@ -195,6 +195,17 @@ def get_my_best_scores():
     
     return jsonify(scores_dict)
 
+
+@app.route('/shop')
+def shop_page():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('home'))
+    
+    # 假設您有一個 shop.html 模板用於儲值頁面
+    return render_template('shop.html', user=user)
+
+
 if __name__ == '__main__':
     # 設置 use_reloader=False 以避免兩次初始化 DB
     app.run(debug=True, port=5000, use_reloader=True)

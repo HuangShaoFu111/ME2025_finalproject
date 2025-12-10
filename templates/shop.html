@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>儲值中心 - Arcade Hub</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
+    <style>
+        /* 調整主容器位置，讓內容居中 */
+        .shop-container {
+            width: 100%;
+            max-width: 800px;
+            margin-top: 50px;
+            text-align: center;
+        }
+
+        /* 儲值選項網格 */
+        .recharge-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        /* 單一選項卡片 */
+        .recharge-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .recharge-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5), 0 0 10px var(--accent);
+        }
+
+        .card-price {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2em;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        
+        .card-bonus {
+            font-size: 0.9em;
+            color: var(--gold);
+            font-weight: 600;
+        }
+
+        /* 硬幣圖標 */
+        .coin-icon {
+            font-size: 1.5em;
+            color: var(--gold);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="user-menu">
+        <div class="user-profile-btn" onclick="location.href='/profile'">
+            <div class="avatar-display">
+                {% if user.avatar == 'default.png' %}
+                    <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=0f172a&color=fff" alt="User">
+                {% else %}
+                    <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" alt="User">
+                {% endif %}
+            </div>
+            <span class="username-display">{{ user.username }}</span>
+        </div>
+        <div class="dropdown-content">
+            <div>Hi, {{ user.username }}</div>
+            <a href="/profile">⚙️ 設定與頭貼</a>
+            <a href="/logout" style="color: #ef4444;">🚪 登出系統</a>
+        </div>
+    </div>
+
+    <div class="shop-container">
+        <h1>💰 儲值中心 (Shop)</h1>
+        <p style="color: var(--text-muted); margin-bottom: 30px;">購買積分，支援 Arcade Hub 運行！</p>
+        
+        <div class="recharge-grid">
+            
+            <div class="recharge-card">
+                <p class="card-price">NT$ 100</p>
+                <p>獲得 <span class="coin-icon">✨ 100</span> 積分</p>
+                <button class="btn-primary" style="margin-top: 15px;">購買</button>
+            </div>
+            
+            <div class="recharge-card">
+                <p class="card-price">NT$ 300</p>
+                <p>獲得 <span class="coin-icon">✨ 320</span> 積分</p>
+                <p class="card-bonus">+20 積分 (額外贈送)</p>
+                <button class="btn-primary" style="margin-top: 15px;">購買</button>
+            </div>
+            
+            <div class="recharge-card">
+                <p class="card-price">NT$ 500</p>
+                <p>獲得 <span class="coin-icon">✨ 550</span> 積分</p>
+                <p class="card-bonus">+50 積分 (最佳優惠)</p>
+                <button class="btn-primary" style="width: 100%; margin-top: 15px;">立即購買</button>
+            </div>
+
+        </div>
+
+        <a href="/lobby" class="btn-secondary" style="margin-top: 50px; border-radius: 50px;">← 返回大廳</a>
+    </div>
+
+</body>
+</html>
