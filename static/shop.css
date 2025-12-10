@@ -1,0 +1,53 @@
+/* 儲值頁面專屬樣式 */
+
+/* 調整主容器位置，讓內容居中 */
+.shop-container {
+    width: 100%;
+    max-width: 800px;
+    margin-top: 50px;
+    text-align: center;
+}
+
+/* 儲值選項網格 */
+.recharge-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+    margin-top: 30px;
+}
+
+/* 單一選項卡片 */
+.recharge-card {
+    background: rgba(30, 41, 59, 0.4);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+}
+
+.recharge-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--accent);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5), 0 0 10px var(--accent);
+}
+
+.card-price {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2em;
+    color: var(--primary);
+    margin-bottom: 10px;
+}
+
+.card-bonus {
+    font-size: 0.9em;
+    color: var(--gold);
+    font-weight: 600;
+}
+
+/* 硬幣圖標 */
+.coin-icon {
+    font-size: 1.5em;
+    color: var(--gold);
+}
