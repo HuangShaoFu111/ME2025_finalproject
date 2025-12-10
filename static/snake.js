@@ -23,7 +23,7 @@ document.addEventListener("keydown", changeDirection);
 startGame();
 
 function startGame() {
-    loop = setInterval(gameLoop, 100);
+    loop = setInterval(gameLoop, 50);
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -102,7 +102,7 @@ function draw() {
             drawEyes(part);
         } else {
             // 身體 (漸層綠色)
-            ctx.fillStyle = `hsl(120, 100%, ${50 - (index * 2)}%)`; // 尾巴越來越暗
+            ctx.fillStyle = `hsl(120, 100%, 50%)`; 
             ctx.shadowBlur = 0;
             ctx.shadowColor = "transparent";
             roundRect(ctx, part.x + 1, part.y + 1, gridSize - 2, gridSize - 2, 2);
