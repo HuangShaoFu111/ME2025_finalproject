@@ -1,109 +1,166 @@
-/* ===== 基本頁面樣式 ===== */
 body {
     margin: 0;
     padding: 0;
-    font-family: "Segoe UI", sans-serif;
-    background: linear-gradient(135deg, #0d1b2a, #1b263b);
+    font-family: "Segoe UI", "Roboto", "Courier New", monospace;
+    background: radial-gradient(circle at center, #0b1021 0%, #000000 100%);
     height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
-    color: white;
-}
-
-/* ===== 標題 ===== */
-.title {
-    margin-top: 20px;
-    font-size: 36px;
-}
-
-/* ===== 上方控制面板 ===== */
-.panel {
-    margin: 15px 0;
-    display: flex;
-    gap: 20px;
-    align-items: center;
-    font-size: 18px;
-}
-
-.panel button {
-    padding: 8px 16px;
-    background: #ffd84d;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.panel button:hover {
-    background: #ffca2a;
-}
-
-/* ===== Canvas 容器（★ 只需要這一次） ===== */
-.game-container {
-    position: relative;
-    display: inline-block;
-}
-
-/* ===== 遊戲畫布 ===== */
-canvas {
-    background: #000;
-    border: 3px solid white;
-    border-radius: 12px;
-}
-
-/* ===== GAME OVER PANEL ===== */
-#gameOverPanel {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 600px;
-    height: 250px;
-    background: rgba(0,0,0,0.6);
-    display: flex;
-    align-items: center;
     justify-content: center;
-    z-index: 20;
-    border-radius: 12px;
+    color: white;
+    overflow: hidden;
 }
 
-.hidden {
-    display: none !important;
+.title {
+    font-size: 3rem;
+    font-weight: 800;
+    color: #00ffff;
+    text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+    margin-bottom: 20px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    font-style: italic;
 }
 
-/* ===== Game Over 彈窗 ===== */
-.panel-box {
-    background: #ffffff;
-    padding: 25px 40px;
+/* === 遊戲容器 === */
+.game-container {
+    padding: 20px;
+    background: rgba(10, 20, 40, 0.7);
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 50px rgba(0, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* === HUD === */
+.info-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 600px;
+}
+
+.stat-box {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ffd84d;
+    text-shadow: 0 0 5px rgba(255, 216, 77, 0.6);
+    font-family: 'Courier New', monospace;
+}
+
+/* === Canvas 區域 === */
+.canvas-wrapper {
+    position: relative;
+    border: 2px solid #00ffff;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2), inset 0 0 20px rgba(0, 255, 255, 0.1);
+    background: #050505;
+    overflow: hidden;
+}
+
+canvas {
+    display: block;
+}
+
+.overlay-text {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 12px;
+    letter-spacing: 2px;
+    pointer-events: none;
+}
+
+/* === 按鈕 === */
+button {
+    cursor: pointer;
+    border: none;
+    transition: 0.2s;
+    font-family: inherit;
+}
+
+.btn-primary {
+    padding: 8px 20px;
+    background: linear-gradient(135deg, #00ffff, #0088ff);
+    color: #000;
+    border-radius: 4px;
+    font-weight: 800;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+}
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.6);
+}
+
+.btn-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+}
+.btn-icon:hover { background: rgba(255,255,255,0.2); }
+
+/* === Modal === */
+.modal {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+    backdrop-filter: blur(5px);
+}
+.hidden { display: none; }
+
+.modal-content {
+    background: #0f172a;
+    padding: 40px;
     border-radius: 12px;
     text-align: center;
-    color: black;
-    box-shadow: 0 0 20px rgba(255,255,255,0.4);
+    border: 1px solid #ff3b3b;
+    box-shadow: 0 0 50px rgba(255, 59, 59, 0.2);
+    min-width: 320px;
+    animation: popIn 0.3s ease-out;
 }
 
-.panel-box h2 {
-    margin: 0 0 15px;
-    font-size: 32px;
+.modal-content h2 { 
+    color: #ff3b3b; margin: 0 0 20px 0; 
+    text-shadow: 0 0 10px rgba(255, 59, 59, 0.5);
+    font-size: 2rem;
 }
 
-.panel-box p {
-    margin: 6px 0;
-    font-size: 20px;
+.big-score { 
+    font-size: 3.5rem; font-weight: 800; color: #fff; 
+    margin: 10px 0 20px 0; 
+    font-family: 'Courier New', monospace;
+    text-shadow: 0 0 15px rgba(255,255,255,0.5);
 }
 
-/* ===== Restart 按鈕 ===== */
-.panel-box button {
-    padding: 10px 20px;
-    margin-top: 12px;
-    background: #4cd964;
-    color: black;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 18px;
-    transition: 0.2s;
+.highlight { color: #ffd84d; }
+.status-text { font-size: 0.8rem; color: #666; margin-bottom: 25px; }
+.modal-buttons { display: flex; gap: 15px; justify-content: center; }
+
+.btn-secondary {
+    background: transparent; border: 1px solid #555; color: #aaa; padding: 8px 20px; border-radius: 4px;
+}
+.btn-secondary:hover { border-color: #fff; color: #fff; }
+
+@keyframes popIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
 }
 
-.panel-box button:hover {
-    background: #49c65a;
-}
+/* User Menu */
+.user-menu { position: absolute; top: 20px; right: 20px; }
+.avatar-btn { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #00ffff; overflow: hidden; }
+.avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
+.username-display { margin-left: 10px; font-weight: 600; color: #ccc; }
+.user-profile-btn { display: flex; align-items: center; background: rgba(0,0,0,0.5); padding: 5px 15px 5px 5px; border-radius: 50px; }

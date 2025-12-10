@@ -4,52 +4,83 @@ const ctx = canvas.getContext("2d");
 const scoreEl = document.getElementById("score");
 const startBtn = document.getElementById("startBtn");
 
-// ===== Game Over Panel =====
-const gameOverPanel = document.getElementById("gameOverPanel");
+// Modal Elements
+const modal = document.getElementById("gameOverModal");
 const finalScoreEl = document.getElementById("finalScore");
 const bestScoreEl = document.getElementById("bestScore");
-const restartBtn = document.getElementById("restartBtn");
+const modalRestartBtn = document.getElementById("modalRestartBtn");
+const uploadStatusEl = document.getElementById("uploadStatus");
 
 let bestScore = localStorage.getItem("bestDinoScore") || 0;
 
 /* ================================
-   Dino / 遊戲變數
+   Game Variables
 ================================ */
-let dino = { x: 50, y: 200, w: 30, h: 30, vy: 0, jumping: false };
-let cactus = [];
-let clouds = [];
-let dust = [];
+// 玩家 (CYBER CUBE)
+// isDucking: 是否正在蹲下
+let dino = { 
+    x: 50, 
+    y: 220, 
+    w: 30, 
+    h: 30, 
+    vy: 0, 
+    jumping: false, 
+    isDucking: false, 
+    trail: [] 
+};
+
+let obstacles = []; // 改名為 obstacles 以包含地面和空中障礙
+let particles = []; // 背景粒子
+let gridOffset = 0; // 地板網格移動量
 
 let score = 0;
-let gameSpeed = 6;
-let gravity = 1;
+let gameSpeed = 7; 
+let initialSpeed = 7;
+let gravity = 1.2;
 
 let obstacleTimer = 0;
-let obstacleInterval = 75;
-
-// 🛣 地面動畫
-let groundOffset = 0;
-
-// 🦖 跑步動畫
-let runFrame = 0;
-let runFrameTimer = 0;
-let runFrameInterval = 8;
-
-// ⭐ 自動難度
-let difficultyTimer = 0;
-let difficultyInterval = 150;
+let obstacleInterval = 70;
 
 let gameLoop = null;
 let gameRunning = false;
 
 /* ================================
-   Start Game
+   Control & Init
 ================================ */
 startBtn.addEventListener("click", startGame);
+modalRestartBtn.addEventListener("click", startGame);
 
-restartBtn.addEventListener("click", () => {
-    gameOverPanel.classList.add("hidden");
-    startGame();
+// 鍵盤按下事件
+document.addEventListener("keydown", (e) => {
+    if (!gameRunning) return;
+
+    // 跳躍 (空白鍵 或 上箭頭)
+    if ((e.code === "Space" || e.code === "ArrowUp")) {
+        e.preventDefault();
+        if (!dino.jumping && !dino.isDucking) { // 蹲下時不能跳
+            dino.vy = -18; 
+            dino.jumping = true;
+        }
+    }
+
+    // 蹲下 (下箭頭)
+    if (e.code === "ArrowDown") {
+        e.preventDefault();
+        if (!dino.isDucking) {
+            dino.isDucking = true;
+            // 如果在空中按蹲下，給一個快速下墜的力道 (急降)
+            if (dino.jumping) {
+                dino.vy += 10;
+            }
+        }
+    }
+});
+
+// 鍵盤放開事件 (解除蹲下)
+document.addEventListener("keyup", (e) => {
+    if (e.code === "ArrowDown") {
+        dino.isDucking = false;
+    }
 });
 
 function startGame() {
@@ -57,8 +88,39 @@ function startGame() {
 
     resetGame();
     gameRunning = true;
+    startBtn.disabled = true;
+    startBtn.style.opacity = "0.5";
+    startBtn.textContent = "RUNNING...";
 
     gameLoop = setInterval(update, 20);
+}
+
+function resetGame() {
+    obstacles = [];
+    particles = [];
+    dino = { 
+        x: 50, 
+        y: 220, 
+        w: 30, 
+        h: 30, 
+        vy: 0, 
+        jumping: false, 
+        isDucking: false, 
+        trail: [] 
+    };
+    
+    score = 0;
+    scoreEl.textContent = score;
+    gameSpeed = initialSpeed; // 重置速度
+    obstacleTimer = 0;
+    gridOffset = 0;
+
+    modal.classList.add("hidden");
+    
+    // 初始化背景粒子
+    for(let i=0; i<20; i++) {
+        particles.push(generateParticle());
+    }
 }
 
 /* ================================
@@ -67,256 +129,234 @@ function startGame() {
 function update() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    drawClouds();
+    // 1. 繪製背景
+    updateParticles();
     drawGround();
-    updateDust();
 
-    /* === Dino Physics === */
+    // 2. 玩家狀態處理 (蹲下 vs 站立)
+    handleDinoState();
+
+    // 3. 物理運算
     dino.vy += gravity;
     dino.y += dino.vy;
 
-    if (dino.y > 200) {
-        dino.y = 200;
+    // 地板碰撞 (地板 y=250)
+    // 根據是否蹲下，地板判定點會些微不同，但這裡統一用腳底判定
+    let groundLevel = 250 - dino.h; // 地面 Y 座標 - 玩家高度
 
-        // Dino 落地 → 產生沙塵
-        if (!dino.jumping && runFrameTimer === 0) {
-            createDust();
-        }
-
+    if (dino.y > groundLevel) {
+        dino.y = groundLevel;
         dino.jumping = false;
+        dino.vy = 0; // 落地歸零
     }
 
+    // 4. 繪製玩家
     drawDino();
 
-    /* === Cactus === */
-    cactus.forEach((o, i) => {
+    // 5. 障礙物管理
+    manageObstacles();
+
+    // 6. 難度調整：分數越高，速度越快
+    // 每 20 分 加速 0.5
+    let targetSpeed = initialSpeed + Math.floor(score / 10) * 0.5;
+    if (gameSpeed < targetSpeed) {
+        gameSpeed += 0.01; // 平滑加速
+    }
+}
+
+/* ================================
+   Logic Functions
+================================ */
+
+function handleDinoState() {
+    if (dino.isDucking) {
+        // 蹲下模式：變矮、變寬
+        dino.w = 40;
+        dino.h = 15;
+    } else {
+        // 站立模式
+        dino.w = 30;
+        dino.h = 30;
+    }
+}
+
+function drawDino() {
+    // 紀錄殘影
+    dino.trail.push({ x: dino.x, y: dino.y, w: dino.w, h: dino.h });
+    if (dino.trail.length > 5) dino.trail.shift();
+
+    // 繪製殘影
+    dino.trail.forEach((pos, index) => {
+        let opacity = index / 5;
+        ctx.fillStyle = `rgba(0, 255, 255, ${opacity * 0.4})`;
+        ctx.fillRect(pos.x - (5-index)*2, pos.y, pos.w, pos.h);
+    });
+
+    // 繪製本體
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "#00ffff";
+    ctx.fillStyle = "#00ffff";
+    ctx.fillRect(dino.x, dino.y, dino.w, dino.h);
+    
+    // 畫眼睛 (讓他有點方向感)
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#000";
+    // 根據是否蹲下調整眼睛位置
+    let eyeY = dino.isDucking ? dino.y + 4 : dino.y + 6;
+    ctx.fillRect(dino.x + dino.w - 8, eyeY, 6, 6);
+}
+
+function manageObstacles() {
+    // 移動 & 繪製
+    obstacles.forEach((o, i) => {
         o.x -= gameSpeed;
 
-        o.blocks.forEach(b => {
-            ctx.fillStyle = "#ff4d4d";
-            ctx.fillRect(o.x + b.offsetX, b.y, b.w, b.h);
-        });
+        // 根據類型繪製不同障礙物
+        if (o.type === 'ground') {
+            // === 地面尖刺 (紅色三角形) ===
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = "#ff0055";
+            ctx.fillStyle = "#ff0055";
+            ctx.beginPath();
+            ctx.moveTo(o.x + o.w / 2, o.y); 
+            ctx.lineTo(o.x + o.w, o.y + o.h);
+            ctx.lineTo(o.x, o.y + o.h);
+            ctx.closePath();
+            ctx.fill();
+        } else {
+            // === 空中無人機 (黃色長條) ===
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = "#ffcc00";
+            ctx.fillStyle = "#ffcc00";
+            // 畫出帶有科技感的無人機
+            ctx.fillRect(o.x, o.y, o.w, o.h);
+            // 裝飾線
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(o.x + 5, o.y + 5, o.w - 10, 2);
+        }
 
-        // collision
-        o.blocks.forEach(b => {
-            if (
-                dino.x < o.x + b.offsetX + b.w &&
-                dino.x + dino.w > o.x + b.offsetX &&
-                dino.y < b.y + b.h &&
-                dino.y + dino.h > b.y
-            ) {
-                return gameOver();
-            }
-        });
+        // === 碰撞檢測 ===
+        // 使用簡單的矩形碰撞 (Axis-Aligned Bounding Box)
+        if (
+            dino.x < o.x + o.w - 5 &&    // 玩家右邊 > 障礙左邊
+            dino.x + dino.w > o.x + 5 && // 玩家左邊 < 障礙右邊
+            dino.y < o.y + o.h - 5 &&    // 玩家腳底 > 障礙頂部
+            dino.y + dino.h > o.y + 5    // 玩家頭頂 < 障礙底部
+        ) {
+            gameOver();
+        }
 
-        if (o.x + o.totalWidth < 0) {
-            cactus.splice(i, 1);
+        // 移除出界物體
+        if (o.x + o.w < -50) {
+            obstacles.splice(i, 1);
             score++;
             scoreEl.textContent = score;
         }
     });
 
-    /* === Create cactus === */
+    ctx.shadowBlur = 0; // 重置陰影
+
+    // 生成新障礙物
     obstacleTimer++;
     if (obstacleTimer > obstacleInterval) {
-        cactus.push(generateCactus());
+        obstacles.push(generateObstacle());
         obstacleTimer = 0;
-    }
-
-    /* === Dynamic difficulty === */
-    difficultyTimer++;
-    if (difficultyTimer > difficultyInterval) {
-        gameSpeed += 0.5;
-        obstacleInterval = Math.max(35, obstacleInterval - 3);
-        difficultyTimer = 0;
+        // 隨機間隔，速度越快間隔越短 (增加難度)
+        let minInterval = Math.max(30, 70 - Math.floor(gameSpeed * 2));
+        obstacleInterval = Math.floor(Math.random() * 40) + minInterval; 
     }
 }
 
-/* ================================
-   🌫️ Dust Particles (ground sand)
-================================ */
-function createDust() {
-    dust.push({
-        x: dino.x + 5,
-        y: dino.y + dino.h,
-        size: 3 + Math.random() * 3,
-        alpha: 0.9,
-        speedX: -(1 + Math.random() * 1.5),
-        speedY: -0.2 - Math.random() * 0.6
-    });
-}
+function generateObstacle() {
+    // 30% 機率生成空中障礙 (需要蹲下)，70% 地面障礙 (需要跳躍)
+    let isAir = Math.random() > 0.65;
 
-function updateDust() {
-    dust.forEach((p, i) => {
-        p.x += p.speedX * gameSpeed * 0.18;
-        p.y += p.speedY;
-        p.alpha -= 0.03;
-
-        ctx.fillStyle = `rgba(200,200,200,${p.alpha})`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-
-        if (p.alpha <= 0) {
-            dust.splice(i, 1);
-        }
-    });
-}
-
-/* ================================
-   ☁️ Cloud Animation
-================================ */
-function drawClouds() {
-    if (clouds.length < 5) {
-        clouds.push(generateCloud());
-    }
-
-    clouds.forEach((c, index) => {
-        c.x -= c.speed;
-
-        ctx.fillStyle = "rgba(255,255,255,0.85)";
-        ctx.beginPath();
-        ctx.ellipse(c.x, c.y, c.size, c.size * 0.6, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        if (c.x + c.size < 0) {
-            clouds[index] = generateCloud();
-            clouds[index].x = canvas.width + Math.random() * 200;
-        }
-    });
-}
-
-function generateCloud() {
-    return {
-        x: canvas.width + Math.random() * 150,
-        y: 30 + Math.random() * 80,
-        size: 20 + Math.random() * 30,
-        speed: 0.5 + Math.random() * 0.8
-    };
-}
-
-/* ================================
-   🛣 Ground Line Animation
-================================ */
-function drawGround() {
-    groundOffset -= gameSpeed;
-
-    if (groundOffset <= -40) {
-        groundOffset = 0;
-    }
-
-    ctx.fillStyle = "#dddddd";
-
-    for (let x = groundOffset; x < canvas.width; x += 40) {
-        ctx.fillRect(x, 240, 30, 3);
-    }
-}
-
-/* ================================
-   🌵 Multi Cactus Generator
-================================ */
-function generateCactus() {
-    const type = Math.floor(Math.random() * 4) + 1;
-
-    let blocks = [];
-    let x = canvas.width;
-
-    if (type === 1) {
-        blocks.push({ offsetX: 0, y: 210, w: 20, h: 40 });
-    }
-    else if (type === 2) {
-        blocks.push({ offsetX: 0, y: 190, w: 30, h: 60 });
-    }
-    else if (type === 3) {
-        blocks.push({ offsetX: 0, y: 210, w: 20, h: 40 });
-        blocks.push({ offsetX: 28, y: 210, w: 20, h: 40 });
-    }
-    else if (type === 4) {
-        blocks.push({ offsetX: 0, y: 210, w: 20, h: 40 });
-        blocks.push({ offsetX: 25, y: 210, w: 20, h: 40 });
-        blocks.push({ offsetX: 50, y: 210, w: 20, h: 40 });
-    }
-
-    let totalWidth = 0;
-    blocks.forEach(b => totalWidth = Math.max(totalWidth, b.offsetX + b.w));
-
-    return {
-        x: x,
-        blocks: blocks,
-        totalWidth: totalWidth
-    };
-}
-
-/* ================================
-   🦖 Dino Animation
-================================ */
-function drawDino() {
-    ctx.fillStyle = "#7CFF7C";
-
-    if (dino.jumping) {
-        ctx.fillRect(dino.x, dino.y, dino.w, dino.h);
-        return;
-    }
-
-    runFrameTimer++;
-    if (runFrameTimer > runFrameInterval) {
-        runFrame = (runFrame + 1) % 2;
-        runFrameTimer = 0;
-    }
-
-    ctx.fillRect(dino.x, dino.y, dino.w, dino.h);
-
-    if (runFrame === 0) {
-        ctx.fillRect(dino.x, dino.y + 25, 12, 10);    
+    if (isAir) {
+        // === 空中障礙 (無人機) ===
+        // 高度設定在地面以上，蹲下可過，站立會撞
+        // 地面 Y=250. 蹲下頭頂 Y = 250 - 15 = 235. 站立頭頂 Y = 250 - 30 = 220.
+        // 障礙物底部必須高於 235 (讓蹲下過)，且低於 250 (讓站立撞到)
+        // 設定 Y = 190, H = 35. 底部 = 225. 
+        // 站立(頭220~腳250) vs 障礙(頂190~底225) -> 重疊 (220~225) -> 撞擊
+        // 蹲下(頭235~腳250) vs 障礙(頂190~底225) -> 無重疊 (235 > 225) -> 安全
+        return {
+            type: 'air',
+            x: canvas.width,
+            y: 190, 
+            w: 40,
+            h: 35 
+        };
     } else {
-        ctx.fillRect(dino.x + 18, dino.y + 25, 12, 10);
+        // === 地面障礙 (尖刺) ===
+        // 隨機生成 1~2 個連在一起
+        let width = Math.random() > 0.5 ? 25 : 50; 
+        return {
+            type: 'ground',
+            x: canvas.width,
+            y: 210, // 250 - 40
+            w: width,
+            h: 40
+        };
     }
 }
 
-/* ================================
-   Jump
-================================ */
-document.addEventListener("keydown", (e) => {
-    if (!gameRunning) return;
+function drawGround() {
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "rgba(0, 255, 255, 0.3)";
+    ctx.lineWidth = 2;
 
-    if (e.code === "Space" && !dino.jumping) {
-        dino.vy = -15;
-        dino.jumping = true;
+    // 地平線
+    ctx.beginPath();
+    ctx.moveTo(0, 250);
+    ctx.lineTo(canvas.width, 250);
+    ctx.stroke();
+
+    // 移動的垂直網格線
+    gridOffset -= gameSpeed;
+    if (gridOffset <= -40) gridOffset = 0;
+
+    for (let x = gridOffset; x < canvas.width; x += 40) {
+        if (x > -40) { 
+            ctx.beginPath();
+            ctx.moveTo(x, 250);
+            ctx.lineTo(x - 20, canvas.height); 
+            ctx.stroke();
+        }
     }
-});
+}
 
-/* ================================
-   Reset Game
-================================ */
-function resetGame() {
-    cactus = [];
-    clouds = [];
-    dust = [];
+function updateParticles() {
+    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+    particles.forEach(p => {
+        p.x -= p.speed;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
 
-    dino = { x: 50, y: 200, w: 30, h: 30, vy: 0, jumping: false };
-    score = 0;
-    scoreEl.textContent = score;
+        if (p.x < 0) {
+            p.x = canvas.width;
+            p.y = Math.random() * 200;
+        }
+    });
+}
 
-    gameSpeed = 6;
-    obstacleTimer = 0;
-    groundOffset = 0;
-
-    runFrame = 0;
-    runFrameTimer = 0;
-
-    difficultyTimer = 0;
-
-    gameOverPanel.classList.add("hidden");
+function generateParticle() {
+    return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * 200,
+        size: Math.random() * 2 + 1,
+        speed: Math.random() * 2 + 0.5
+    };
 }
 
 /* ================================
-   Game Over UI
+   Game Over Logic
 ================================ */
 function gameOver() {
     clearInterval(gameLoop);
     gameRunning = false;
+    startBtn.disabled = false;
+    startBtn.style.opacity = "1";
+    startBtn.textContent = "SYSTEM REBOOT";
 
-    // 更新本地最高分邏輯 (保留原功能)
     if (score > bestScore) {
         bestScore = score;
         localStorage.setItem("bestDinoScore", bestScore);
@@ -324,11 +364,11 @@ function gameOver() {
 
     finalScoreEl.textContent = score;
     bestScoreEl.textContent = bestScore;
-    
-    // 顯示遊戲結束面板
-    gameOverPanel.classList.remove("hidden");
+    uploadStatusEl.textContent = "Uploading data...";
+    uploadStatusEl.style.color = "#888";
 
-    // --- 新增：上傳分數到後端 ---
+    modal.classList.remove("hidden");
+
     fetch('/api/submit_score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -340,11 +380,15 @@ function gameOver() {
     .then(res => res.json())
     .then(data => {
         if(data.status === 'success') {
-            console.log("分數上傳成功");
+            uploadStatusEl.textContent = "✅ Data synced to server.";
+            uploadStatusEl.style.color = "#4ade80";
         } else {
-            console.log("未登入，分數未儲存");
+            uploadStatusEl.textContent = "❌ Sync failed.";
+            uploadStatusEl.style.color = "#ef4444";
         }
     })
-    .catch(err => console.error("上傳錯誤:", err));
-    // ---------------------------
+    .catch(err => {
+        console.error(err);
+        uploadStatusEl.textContent = "⚠️ Connection Error";
+    });
 }
