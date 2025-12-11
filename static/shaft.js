@@ -40,6 +40,7 @@ let platformSpeed = 1.5; // 修正平台基礎上升速度
 const keys = { ArrowLeft: false, ArrowRight: false };
 
 document.addEventListener("keydown", (e) => { 
+    // 只有在 PLAYING 狀態下才接受按鍵輸入
     if(keys.hasOwnProperty(e.code) && gameState === "PLAYING") keys[e.code] = true; 
 });
 document.addEventListener("keyup", (e) => { if(keys.hasOwnProperty(e.code)) keys[e.code] = false; });
@@ -65,7 +66,7 @@ function spawnPlatform(y) {
     });
 }
 
-// NEW: 重置遊戲狀態
+// NEW: 重置遊戲狀態 (不控制 startScreen 的顯示/隱藏)
 function resetState() {
     // 重置平台
     platforms.length = 0;
@@ -87,7 +88,7 @@ function resetState() {
     hpEl.style.color = '#4ade80';
 
     modal.classList.add("hidden");
-    startScreen.classList.add("hidden");
+    // ⭐ 關鍵修正：移除 startScreen.classList.add("hidden");
 }
 
 // NEW: 啟動遊戲 (按鈕呼叫)
@@ -95,6 +96,10 @@ function startGame() {
     if (gameState === "PLAYING") return;
     
     resetState();
+    
+    // ⭐ 關鍵修正：在這裡隱藏開始畫面
+    startScreen.classList.add("hidden"); 
+    
     gameState = "PLAYING";
     // 確保遊戲迴圈在啟動後開始
     requestAnimationFrame(gameLoop); 
@@ -128,7 +133,7 @@ function update() {
         spawnPlatform(canvas.height);
     }
 
-    // 3. 碰撞檢測 (簡化，以確保程式碼穩定性)
+    // 3. 碰撞檢測 
     player.onGround = false;
     platforms.forEach(p => {
         if (player.vy > 0 && 
@@ -173,7 +178,6 @@ function draw() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // 畫平台
-    // 這裡我們在 READY/GAMEOVER 狀態也會畫出初始化平台，提供背景
     platforms.forEach(p => {
         if(p.type === 0) ctx.fillStyle = "#4ade80"; // Normal
         if(p.type === 1) ctx.fillStyle = "#ef4444"; // Spikes (Red)
@@ -211,11 +215,11 @@ function draw() {
 }
 
 function gameLoop() {
-    // NEW: 只有在 PLAYING 狀態下才執行 update()
+    // 只有在 PLAYING 狀態下才執行 update()
     if(gameState === "PLAYING") {
         update();
     }
-    // 永遠執行 draw()，即使在 READY 狀態也要繪製初始平台和玩家
+    // 永遠執行 draw()
     draw(); 
     requestAnimationFrame(gameLoop);
 }
@@ -246,8 +250,7 @@ function gameOver() {
     });
 }
 
-// 初始啟動：在載入時就啟動 gameLoop，但 update() 會被 gameState 阻擋
-// 這裡我們需要手動呼叫一次 resetState() 確保初始畫面繪製
+// 初始啟動：在載入時啟動 gameLoop，並重設狀態
 resetState(); 
-gameState = "READY"; // 確保 resetState 後狀態正確
+gameState = "READY"; // 確保 resetState 後狀態為 READY
 gameLoop();
