@@ -10,13 +10,13 @@ const uploadStatusEl = document.getElementById("uploadStatus");
 const startScreen = document.getElementById("startScreen");
 const startBtn = document.getElementById("startBtn");
 
-// ===================================
-//  核心遊戲常數 (調整這裡控制遊戲速度)
-// ===================================
-const INITIAL_PLATFORM_SPEED = 0.08; // 平台基礎上升速度 (明顯變慢)
-const PLAYER_HORIZONTAL_SPEED = 0.5; // 玩家水平移動速度 (微調)
-const GRAVITY = 0.004;                // 玩家重力加速度 (明顯變慢)
-const MAX_FALL_SPEED = 0.01;           // 最大自由落體速度限制
+// =========================================================
+//  核心遊戲常數 (調整為原速度的 1/100)
+// =========================================================
+const INITIAL_PLATFORM_SPEED = 0.008; // 平台基礎上升速度 (原 0.8)
+const PLAYER_HORIZONTAL_SPEED = 0.035; // 玩家水平移動速度 (原 3.5)
+const GRAVITY = 0.004;                // 玩家重力加速度 (原 0.4)
+const MAX_FALL_SPEED = 0.08;           // 最大自由落體速度限制 (原 8)
 
 // 遊戲狀態 (READY -> PLAYING -> GAMEOVER)
 let gameState = "READY"; 
@@ -65,22 +65,19 @@ function spawnPlatform(y) {
 }
 
 function resetState() {
-    // 重置平台
     platforms.length = 0;
     for(let i=0; i<6; i++) {
-        spawnPlatform(canvas.height - 100 - i * 90); // 從底部開始生成
+        spawnPlatform(canvas.height - 100 - i * 90);
     }
     
-    // 重置玩家
     player.x = 150; 
     player.y = 100;
     player.vy = 0;
     
-    // 重置計分/速度
     score = 0;
     hp = 100;
     frameCount = 0;
-    gameSpeed = INITIAL_PLATFORM_SPEED; // 重設基礎速度
+    gameSpeed = INITIAL_PLATFORM_SPEED; 
     
     depthEl.innerText = score;
     hpEl.innerText = hp;
@@ -106,13 +103,13 @@ function update() {
     score = Math.floor(frameCount / 10);
     depthEl.innerText = score;
 
-    // 難度增加：得分越高，平台上升越快
-    gameSpeed = INITIAL_PLATFORM_SPEED + (score / 1000); 
+    // 難度增加：將得分影響也降低 100 倍，否則難度上升太快
+    gameSpeed = INITIAL_PLATFORM_SPEED + (score / 100000); 
 
     // 1. 玩家水平移動
     if (keys.ArrowLeft) player.vx = -PLAYER_HORIZONTAL_SPEED;
     else if (keys.ArrowRight) player.vx = PLAYER_HORIZONTAL_SPEED;
-    else player.vx = 0; // 鬆開按鍵即停止
+    else player.vx = 0; 
 
     player.x += player.vx;
     
@@ -120,14 +117,13 @@ function update() {
     if (player.x < 0) player.x = 0;
     if (player.x + player.w > canvas.width) player.x = canvas.width - player.w;
 
-    // 2. 玩家垂直移動 (重力與最大速度)
+    // 2. 玩家垂直移動
     player.vy = Math.min(player.vy + GRAVITY, MAX_FALL_SPEED);
     player.y += player.vy;
 
     // 3. 平台移動與生成
     platforms.forEach(p => p.y -= gameSpeed);
 
-    // 移除過頂部的平台，並在底部生成新的
     if (platforms.length > 0 && platforms[0].y + platformHeight < 0) {
         platforms.shift();
         spawnPlatform(canvas.height);
@@ -138,24 +134,21 @@ function update() {
     player.onGround = false;
 
     platforms.forEach(p => {
-        // 判斷是否發生碰撞 (玩家腳底 vs 平台頂部)
         if (
-            player.vy >= 0 && // 往下掉時才判定
+            player.vy >= 0 && 
             player.x + player.w > p.x &&
             player.x < p.x + p.w &&
             player.y + player.h >= p.y &&
-            player.y + player.h <= p.y + platformHeight // 寬容度
+            player.y + player.h <= p.y + platformHeight
         ) {
-            if (p.type === 2) return; // 虛假平台穿過
+            if (p.type === 2) return; 
 
-            // 修正玩家位置到平台頂部
             player.y = p.y - player.h;
             player.vy = 0;
             player.onGround = true;
             
-            // 處理平台類型傷害
-            if (p.type === 1) { // 尖刺
-                if (!wasOnGround) { // 只有在剛碰到尖刺時才扣血
+            if (p.type === 1) { 
+                if (!wasOnGround) { 
                     hp = Math.max(0, hp - 5);
                 }
                 hpEl.style.color = 'red';
@@ -165,26 +158,25 @@ function update() {
         }
     });
 
-    // 平台帶玩家上升：玩家在平台上時，必須向上移動 (解決玩家被平台穿過的問題)
+    // 平台帶玩家上升
     if (player.onGround) {
          player.y -= gameSpeed; 
-         // 如果平台速度過快，將玩家推到頂部尖刺，由頂部尖刺傷害邏輯處理
     }
     
-    // 5. 頂部尖刺傷害 (碰到天花板)
+    // 5. 頂部尖刺傷害
     if (player.y < 10) {
-        if (player.y < 5) { // 撞得越深，扣血越多
+        if (player.y < 5) { 
             hp = Math.max(0, hp - 10);
         } else {
             hp = Math.max(0, hp - 3);
         }
         player.y = 10;
-        player.vy = 0; // 撞到頂部，停止上升/下墜
+        player.vy = 0; 
     }
 
     hpEl.innerText = Math.floor(hp);
 
-    // 6. 死亡判定 (掉到底部 或 HP歸零)
+    // 6. 死亡判定
     if (player.y > canvas.height || hp <= 0) {
         gameOver();
     }
@@ -222,7 +214,7 @@ function draw() {
     ctx.shadowColor = "#facc15";
     ctx.fillStyle = "#facc15";
     ctx.fillRect(player.x, player.y, player.w, player.h);
-    // 眼睛 (依據速度決定看的方向)
+    // 眼睛
     ctx.fillStyle = "black";
     ctx.shadowBlur = 0;
     
@@ -245,7 +237,7 @@ function gameOver() {
     gameState = "GAMEOVER";
     modal.classList.remove("hidden");
     finalScoreEl.innerText = score;
-    startScreen.classList.remove("hidden"); // 顯示開始畫面，供重玩
+    startScreen.classList.remove("hidden"); 
     
     fetch('/api/submit_score', {
         method: 'POST',
