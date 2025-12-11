@@ -7,110 +7,171 @@ const modal = document.getElementById("gameOverModal");
 const finalScoreEl = document.getElementById("finalScore");
 const uploadStatusEl = document.getElementById("uploadStatus");
 
-let gridSize = 20;
-let snake = [{ x: 200, y: 200 }];
+// === 遊戲設定 ===
+const gridSize = 20;
+const TICK_RATE = 100; // 蛇移動速度 (毫秒)
+
+// === 遊戲變數 ===
+let snake = [];         
+let prevSnake = [];     
 let direction = { x: 0, y: 0 };
-let food = spawnFood();
+let inputQueue = [];    
+let food = { x: 0, y: 0 };
 let score = 0;
-let loop = null;
+let animationId = null;
+let isGameRunning = false; // 預設暫停
 
-// ⭐ BUG 修復關鍵：增加一個變數鎖定目前的輸入
-let isProcessingInput = false;
+// === 時間控制變數 ===
+let lastTime = 0;
+let accumulator = 0;
 
-document.addEventListener("keydown", changeDirection);
+// 初始化輸入監聽
+document.addEventListener("keydown", handleInput);
 
-// 啟動遊戲
-startGame();
+// 網頁載入時，先重置狀態並開始繪圖 (但不開始移動)
+resetState();
+requestAnimationFrame(gameLoop);
 
-function startGame() {
-    loop = setInterval(gameLoop, 50);
+// === 1. 重置狀態 ===
+function resetState() {
+    snake = [{ x: 200, y: 200 }, { x: 180, y: 200 }, { x: 160, y: 200 }];
+    prevSnake = JSON.parse(JSON.stringify(snake));
+    direction = { x: 1, y: 0 }; // 預設向右
+    inputQueue = [];
+    score = 0;
+    scoreEl.textContent = score;
+    food = spawnFood();
+    
+    lastTime = performance.now();
+    accumulator = 0;
+
+    modal.classList.add("hidden");
 }
 
-function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.roundRect(x, y, w, h, r); // 使用新的 Canvas API
-    ctx.fill();
-    ctx.closePath();
+// === 2. 開始遊戲 (由按鍵觸發) ===
+function initGame() {
+    //resetState(); 
+    isGameRunning = true; // 解鎖邏輯更新
 }
 
-function gameLoop() {
-    // 每個 Loop 開始時，解鎖輸入，允許下一次轉向
-    isProcessingInput = false;
+// === 核心遊戲迴圈 ===
+function gameLoop(currentTime) {
+    const deltaTime = currentTime - lastTime;
+    lastTime = currentTime;
+
+    if (isGameRunning) {
+        accumulator += deltaTime;
+        while (accumulator >= TICK_RATE) {
+            update();
+            accumulator -= TICK_RATE;
+        }
+    } else {
+        accumulator = 0;
+    }
+
+    // 待機時 alpha = 1 (不插值)，移動時計算插值
+    const alpha = isGameRunning ? (accumulator / TICK_RATE) : 1;
+
+    draw(alpha);
+
+    animationId = requestAnimationFrame(gameLoop);
+}
+
+// === 邏輯更新 ===
+function update() {
+    if (inputQueue.length > 0) {
+        direction = inputQueue.shift();
+    }
+
+    prevSnake = JSON.parse(JSON.stringify(snake));
 
     let head = {
         x: snake[0].x + direction.x * gridSize,
         y: snake[0].y + direction.y * gridSize
     };
 
-    /* === 無限地圖 === */
     if (head.x < 0) head.x = canvas.width - gridSize;
     if (head.x >= canvas.width) head.x = 0;
     if (head.y < 0) head.y = canvas.height - gridSize;
     if (head.y >= canvas.height) head.y = 0;
 
-    // 撞自己 (從第4節開始判斷即可，優化效能)
-    if (snake.length > 3) {
-        for (let i = 3; i < snake.length; i++) {
-            if (snake[i].x === head.x && snake[i].y === head.y) {
-                return gameOver();
-            }
+    for (let i = 0; i < snake.length - 1; i++) {
+        if (head.x === snake[i].x && head.y === snake[i].y) {
+            return gameOver();
         }
     }
 
     snake.unshift(head);
 
-    // 吃食物
     if (head.x === food.x && head.y === food.y) {
         score++;
         scoreEl.textContent = score;
         food = spawnFood();
+        prevSnake.push(prevSnake[prevSnake.length - 1]);
     } else {
-        snake.pop(); // 沒吃到就移除尾巴
+        snake.pop();
     }
-
-    draw();
 }
 
-function draw() {
-    // 1. 清空畫布
+// === 畫面渲染 (新增文字提示) ===
+function draw(alpha) {
     ctx.fillStyle = "#0d1117";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 2. 畫網格 (美化)
     drawGrid();
 
-    // 3. 畫食物 (帶有呼吸燈特效)
-    let glow = Math.abs(Math.sin(Date.now() / 200)) * 10 + 5; // 呼吸計算
+    // 畫食物
+    let glow = Math.abs(Math.sin(Date.now() / 200)) * 10 + 5;
     ctx.shadowBlur = glow;
     ctx.shadowColor = "#ff3b3b";
     ctx.fillStyle = "#ff3b3b";
-    
-    // 讓食物稍微小一點點，看起來更精緻
-    let padding = 2;
-    roundRect(ctx, food.x + padding, food.y + padding, gridSize - padding*2, gridSize - padding*2, 5);
+    let p = 2;
+    roundRect(ctx, food.x + p, food.y + p, gridSize - p*2, gridSize - p*2, 5);
+    ctx.shadowBlur = 0;
 
-    // 4. 畫蛇
-    snake.forEach((part, index) => {
-        if (index === 0) {
-            // 頭部
-            ctx.fillStyle = "#7CFF7C";  
+    // 畫蛇
+    for (let i = 0; i < snake.length; i++) {
+        const curr = snake[i];
+        const prev = prevSnake[i] || curr;
+
+        let renderX = prev.x + (curr.x - prev.x) * alpha;
+        let renderY = prev.y + (curr.y - prev.y) * alpha;
+
+        if (Math.abs(curr.x - prev.x) > gridSize) renderX = curr.x;
+        if (Math.abs(curr.y - prev.y) > gridSize) renderY = curr.y;
+
+        if (i === 0) {
+            ctx.fillStyle = "#7CFF7C";
             ctx.shadowColor = "#7CFF7C";
             ctx.shadowBlur = 15;
-            roundRect(ctx, part.x, part.y, gridSize, gridSize, 4);
-            
-            // 畫眼睛 (增加細節)
-            drawEyes(part);
+            roundRect(ctx, renderX, renderY, gridSize, gridSize, 4);
+            drawEyes(renderX, renderY); 
         } else {
-            // 身體 (漸層綠色)
-            ctx.fillStyle = `hsl(120, 100%, 50%)`; 
+            ctx.fillStyle = `hsl(120, 100%, 50%)`;
             ctx.shadowBlur = 0;
-            ctx.shadowColor = "transparent";
-            roundRect(ctx, part.x + 1, part.y + 1, gridSize - 2, gridSize - 2, 2);
+            roundRect(ctx, renderX, renderY, gridSize + 0.5, gridSize + 0.5, 2);
         }
-    });
+    }
+    ctx.shadowBlur = 0;
 
-    // 重置陰影，避免影響其他繪圖
-    ctx.shadowBlur = 0; 
+    // ⭐ 新增：如果遊戲沒在跑，顯示提示文字
+    if (!isGameRunning) {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.font = "bold 20px 'Segoe UI', sans-serif";
+        ctx.textAlign = "center";
+        ctx.shadowColor = "black";
+        ctx.shadowBlur = 5;
+        ctx.fillText("Press Arrow Keys to Start", canvas.width / 2, canvas.height / 2 + 50);
+        ctx.shadowBlur = 0; // 重置
+    }
+}
+
+// === 輔助函式 ===
+function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+    ctx.fill();
+    ctx.closePath();
 }
 
 function drawGrid() {
@@ -128,32 +189,32 @@ function drawGrid() {
     ctx.stroke();
 }
 
-function drawEyes(head) {
+function drawEyes(x, y) {
     ctx.fillStyle = "black";
     ctx.shadowBlur = 0;
+    const eyeSize = 3;
     
-    let eyeSize = 3;
-    let offsetX = 5;
-    let offsetY = 5;
+    let eyeOffsetX1, eyeOffsetY1, eyeOffsetX2, eyeOffsetY2;
 
-    // 根據方向調整眼睛位置
-    if (direction.x === 1) { // 右
-        ctx.fillRect(head.x + 12, head.y + 4, eyeSize, eyeSize);
-        ctx.fillRect(head.x + 12, head.y + 12, eyeSize, eyeSize);
-    } else if (direction.x === -1) { // 左
-        ctx.fillRect(head.x + 4, head.y + 4, eyeSize, eyeSize);
-        ctx.fillRect(head.x + 4, head.y + 12, eyeSize, eyeSize);
-    } else if (direction.y === -1) { // 上
-        ctx.fillRect(head.x + 4, head.y + 4, eyeSize, eyeSize);
-        ctx.fillRect(head.x + 12, head.y + 4, eyeSize, eyeSize);
-    } else { // 下或靜止
-        ctx.fillRect(head.x + 4, head.y + 12, eyeSize, eyeSize);
-        ctx.fillRect(head.x + 12, head.y + 12, eyeSize, eyeSize);
+    if (direction.x === 1) { 
+        eyeOffsetX1 = 12; eyeOffsetY1 = 4;
+        eyeOffsetX2 = 12; eyeOffsetY2 = 12;
+    } else if (direction.x === -1) { 
+        eyeOffsetX1 = 4; eyeOffsetY1 = 4;
+        eyeOffsetX2 = 4; eyeOffsetY2 = 12;
+    } else if (direction.y === -1) { 
+        eyeOffsetX1 = 4; eyeOffsetY1 = 4;
+        eyeOffsetX2 = 12; eyeOffsetY2 = 4;
+    } else { 
+        eyeOffsetX1 = 4; eyeOffsetY1 = 12;
+        eyeOffsetX2 = 12; eyeOffsetY2 = 12;
     }
+
+    ctx.fillRect(x + eyeOffsetX1, y + eyeOffsetY1, eyeSize, eyeSize);
+    ctx.fillRect(x + eyeOffsetX2, y + eyeOffsetY2, eyeSize, eyeSize);
 }
 
 function spawnFood() {
-    // 確保食物不會生在蛇身上
     let newFood;
     let isOnSnake;
     do {
@@ -166,46 +227,57 @@ function spawnFood() {
     return newFood;
 }
 
-function changeDirection(e) {
-    // ⭐ 如果這個 Frame 已經處理過輸入，則忽略後續按鍵，防止自殺
-    if (isProcessingInput) return;
-
+// ⭐ 關鍵修正：按下方向鍵時，如果遊戲沒開始，就自動開始
+function handleInput(e) {
     const key = e.key;
-    let moved = false;
+    const arrowKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
 
-    if (key === "ArrowUp" && direction.y === 0) {
-        direction = { x: 0, y: -1 };
-        moved = true;
-    }
-    else if (key === "ArrowDown" && direction.y === 0) {
-        direction = { x: 0, y: 1 };
-        moved = true;
-    }
-    else if (key === "ArrowLeft" && direction.x === 0) {
-        direction = { x: -1, y: 0 };
-        moved = true;
-    }
-    else if (key === "ArrowRight" && direction.x === 0) {
-        direction = { x: 1, y: 0 };
-        moved = true;
+    // 1. 如果遊戲尚未開始，且按下了方向鍵 -> 啟動遊戲
+    if (!isGameRunning && arrowKeys.includes(key)) {
+        // 特別處理：如果按的是「左」，因為預設向右，不能直接轉頭，所以會忽略第一次轉向(保持向右)
+        // 但遊戲會成功啟動。如果是上下，則會立即轉向。
+        initGame(); 
+        // 這裡不需要 return，讓程式繼續往下跑，去設定第一次的方向
     }
 
-    // 只有當方向真正改變時，才鎖定輸入
-    if (moved) {
-        isProcessingInput = true;
+    // 如果還是沒開始 (按了其他鍵)，就忽略
+    if (!isGameRunning) return;
+
+    // 2. 正常的移動邏輯
+    const lastScheduledDirection = inputQueue.length > 0 
+        ? inputQueue[inputQueue.length - 1] 
+        : direction;
+
+    let newDir = null;
+
+    if (key === "ArrowUp" && lastScheduledDirection.y === 0) {
+        newDir = { x: 0, y: -1 };
+    }
+    else if (key === "ArrowDown" && lastScheduledDirection.y === 0) {
+        newDir = { x: 0, y: 1 };
+    }
+    else if (key === "ArrowLeft" && lastScheduledDirection.x === 0) {
+        newDir = { x: -1, y: 0 };
+    }
+    else if (key === "ArrowRight" && lastScheduledDirection.x === 0) {
+        newDir = { x: 1, y: 0 };
+    }
+
+    if (newDir && inputQueue.length < 3) {
+        inputQueue.push(newDir);
     }
 }
 
 function gameOver() {
-    clearInterval(loop);
-    
-    // 顯示結算視窗
+    isGameRunning = false;
+    // 不取消 animationFrame，讓背景繼續繪製
+    // 但因為 isGameRunning = false，邏輯會停止
+
     modal.classList.remove("hidden");
     finalScoreEl.textContent = score;
     uploadStatusEl.textContent = "Uploading score...";
     uploadStatusEl.style.color = "#888";
 
-    // 上傳分數
     fetch('/api/submit_score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -218,10 +290,10 @@ function gameOver() {
     .then(data => {
         if(data.status === 'success') {
             uploadStatusEl.textContent = "✅ Score saved successfully!";
-            uploadStatusEl.style.color = "#4ade80"; // Green
+            uploadStatusEl.style.color = "#4ade80";
         } else {
-            uploadStatusEl.textContent = "❌ Save failed (Not logged in?)";
-            uploadStatusEl.style.color = "#ef4444"; // Red
+            uploadStatusEl.textContent = "❌ Save failed";
+            uploadStatusEl.style.color = "#ef4444";
         }
     })
     .catch(error => {
