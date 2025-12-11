@@ -13,7 +13,7 @@ const startBtn = document.getElementById("startBtn");
 // =========================================================
 //  核心遊戲常數 (調整為原速度的 1/100)
 // =========================================================
-const INITIAL_PLATFORM_SPEED = 0.08; // 平台基礎上升速度 (原 0.8)
+const INITIAL_PLATFORM_SPEED = 0.5; // 平台基礎上升速度 (原 0.8)
 const PLAYER_HORIZONTAL_SPEED = 0.35; // 玩家水平移動速度 (原 3.5)
 const GRAVITY = 0.4;                // 玩家重力加速度 (原 0.4)
 const MAX_FALL_SPEED = 0.8;           // 最大自由落體速度限制 (原 8)
