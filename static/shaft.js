@@ -11,12 +11,13 @@ const startScreen = document.getElementById("startScreen");
 const startBtn = document.getElementById("startBtn");
 
 // =========================================================
-//  核心遊戲常數 (調整為原速度的 1/100)
+//  核心遊戲常數 
 // =========================================================
-const INITIAL_PLATFORM_SPEED = 0.1; // 平台基礎上升速度 (原 0.8)
-const PLAYER_HORIZONTAL_SPEED = 0.35; // 玩家水平移動速度 (原 3.5)
-const GRAVITY = 0.4;                // 玩家重力加速度 (原 0.4)
-const MAX_FALL_SPEED = 0.8;           // 最大自由落體速度限制 (原 8)
+const PLATFORM_SPACING = 55;          // ⭐ 關鍵修正：平台之間的理想垂直間距 (單位: 像素)
+const INITIAL_PLATFORM_SPEED = 0.1;  // 平台基礎上升速度
+const PLAYER_HORIZONTAL_SPEED = 0.35; // 玩家水平移動速度
+const GRAVITY = 0.4;                  // 玩家重力加速度
+const MAX_FALL_SPEED = 0.8;           // 最大自由落體速度限制
 
 // 遊戲狀態 (READY -> PLAYING -> GAMEOVER)
 let gameState = "READY"; 
@@ -51,8 +52,8 @@ startBtn.addEventListener("click", startGame);
 function spawnPlatform(y) {
     let type = 0;
     const rand = Math.random();
-    if (rand < 0.25) type = 1; // 25% Spikes
-    else if (rand < 0.45) type = 2; // 20% Fake
+    if (rand < 0.25) type = 1; 
+    else if (rand < 0.45) type = 2; 
     
     platforms.push({
         x: Math.random() * (canvas.width - platformWidth),
@@ -65,9 +66,13 @@ function spawnPlatform(y) {
 }
 
 function resetState() {
+    // ⭐ 關鍵修正 1: 根據固定間距生成足夠覆蓋畫面的平台
     platforms.length = 0;
-    for(let i=0; i<6; i++) {
-        spawnPlatform(canvas.height - 100 - i * 10);
+    const platformCount = Math.ceil(canvas.height / PLATFORM_SPACING) + 2; // 確保有足夠的平台覆蓋整個畫布
+    
+    for(let i = 0; i < platformCount; i++) {
+        // 從底部往上生成，間距使用 PLATFORM_SPACING
+        spawnPlatform(canvas.height - 100 - i * PLATFORM_SPACING); 
     }
     
     player.x = 150; 
@@ -103,8 +108,7 @@ function update() {
     score = Math.floor(frameCount / 10);
     depthEl.innerText = score;
 
-    // 難度增加：將得分影響也降低 100 倍，否則難度上升太快
-    gameSpeed = INITIAL_PLATFORM_SPEED + (score / 100000); 
+    gameSpeed = INITIAL_PLATFORM_SPEED + (score / 5000); 
 
     // 1. 玩家水平移動
     if (keys.ArrowLeft) player.vx = -PLAYER_HORIZONTAL_SPEED;
@@ -124,9 +128,16 @@ function update() {
     // 3. 平台移動與生成
     platforms.forEach(p => p.y -= gameSpeed);
 
+    // ⭐ 關鍵修正 2: 檢查最底下的平台是否已經足夠高，然後在底部生成新平台
+    // 檢查最後一個平台是否已經進入畫面，如果底部還有空間，就生成新的
+    const lastPlatform = platforms[platforms.length - 1];
+    if (lastPlatform && lastPlatform.y <= canvas.height - PLATFORM_SPACING) {
+        spawnPlatform(canvas.height); 
+    }
+
+    // 移除過頂部的平台
     if (platforms.length > 0 && platforms[0].y + platformHeight < 0) {
         platforms.shift();
-        spawnPlatform(canvas.height);
     }
     
     // 4. 碰撞檢測與修正
