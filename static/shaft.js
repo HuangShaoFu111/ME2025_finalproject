@@ -19,8 +19,8 @@ let hp = 100;
 let frameCount = 0;
 
 // ⭐ 關鍵修正 1: 掉落重力與移動速度
-const GRAVITY = 0.35; // 修正掉落速度
-const HORIZONTAL_SPEED = 3; // 修正水平移動速度
+const GRAVITY = 0.05; // 修正掉落速度
+const HORIZONTAL_SPEED = 0.5; // 修正水平移動速度
 
 // 玩家設定
 const player = {
