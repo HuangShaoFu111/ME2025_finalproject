@@ -25,7 +25,7 @@ const player = {
 const platforms = [];
 const platformWidth = 70;
 const platformHeight = 15;
-let platformSpeed = 1;
+let platformSpeed = 0.5;
 
 // 按鍵監聽
 const keys = { ArrowLeft: false, ArrowRight: false };
