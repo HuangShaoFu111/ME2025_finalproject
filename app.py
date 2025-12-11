@@ -48,7 +48,7 @@ def game_page(game_name):
     if not user:
         return redirect(url_for('home'))
     
-    valid_games = ['snake', 'dino', 'whac', 'memory']
+    valid_games = ['snake', 'dino', 'whac', 'memory', 'tetris', 'shaft']
     if game_name in valid_games:
         # 將 user 資訊傳入，讓前端 Header 可以顯示頭貼
         return render_template(f'{game_name}.html', user=user)

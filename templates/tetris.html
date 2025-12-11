@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEON TETRIS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='tetris.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="user-menu">
+        <div class="user-profile-btn" style="cursor: default;"> 
+            <div class="avatar-display">
+                {% if user.avatar == 'default.png' %}
+                    <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=0f172a&color=fff" alt="User Avatar">
+                {% else %}
+                    <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" alt="User Avatar">
+                {% endif %}
+            </div>
+            <span class="username-display">{{ user.username }}</span>
+        </div>
+    </div>
+
+    <h1 class="title">NEON TETRIS</h1>
+
+    <div class="game-container">
+        <div class="info-bar">
+            <div class="score-box">SCORE: <span id="score">0</span></div>
+            <div class="score-box">LINES: <span id="lines">0</span></div>
+        </div>
+
+        <div class="canvas-wrapper">
+            <canvas id="tetris" width="240" height="400"></canvas>
+            <div class="controls-hint">
+                <p>← → Move</p>
+                <p>↑ Rotate</p>
+                <p>↓ Drop</p>
+            </div>
+        </div>
+        
+        <div style="margin-top: 15px;">
+            <button class="btn-lobby" onclick="location.href='/lobby'">
+                <i class="fa-solid fa-house"></i> Lobby
+            </button>
+        </div>
+    </div>
+
+    <div id="gameOverModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>GAME OVER</h2>
+            <p>Final Score: <span id="finalScore">0</span></p>
+            <p id="uploadStatus" class="status-text">Uploading score...</p>
+            <div class="modal-buttons">
+                <button onclick="location.reload()">Replay</button>
+                <button class="btn-secondary" onclick="location.href='/lobby'">Exit</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='tetris.js') }}"></script>
+</body>
+</html>

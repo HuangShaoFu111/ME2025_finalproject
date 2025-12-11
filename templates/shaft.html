@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NS-SHAFT</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='shaft.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="user-menu">
+        <div class="user-profile-btn" style="cursor: default;"> 
+            <div class="avatar-display">
+                {% if user.avatar == 'default.png' %}
+                    <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=0f172a&color=fff" alt="User Avatar">
+                {% else %}
+                    <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" alt="User Avatar">
+                {% endif %}
+            </div>
+            <span class="username-display">{{ user.username }}</span>
+        </div>
+    </div>
+
+    <h1 class="title">NS-SHAFT</h1>
+
+    <div class="game-container">
+        <div class="info-bar">
+            <div class="score-box">DEPTH: <span id="depth">0</span> m</div>
+            <div class="score-box" style="color: #4ade80;">HP: <span id="hp">100</span>%</div>
+        </div>
+
+        <div class="canvas-wrapper">
+            <canvas id="shaftCanvas" width="300" height="500"></canvas>
+            <div class="spikes-top"></div>
+        </div>
+
+        <div style="margin-top: 15px;">
+             <button class="btn-lobby" onclick="location.href='/lobby'">
+                <i class="fa-solid fa-house"></i> Lobby
+            </button>
+        </div>
+    </div>
+
+    <div id="gameOverModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>MISSION FAILED</h2>
+            <p>Max Depth: <span id="finalScore">0</span></p>
+            <p id="uploadStatus" class="status-text">Uploading score...</p>
+            <div class="modal-buttons">
+                <button onclick="location.reload()">Retry</button>
+                <button class="btn-secondary" onclick="location.href='/lobby'">Exit</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='shaft.js') }}"></script>
+</body>
+</html>

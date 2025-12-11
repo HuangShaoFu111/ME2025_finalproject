@@ -178,6 +178,17 @@
                     <div class="game-title">Dino Run</div>
                     <div class="game-desc">Dino Running Game<br>Jump over obstacles and aim for the highest score</div>
                 </div>
+                <div class="game-card" onclick="location.href='/game/tetris'">
+                    <span class="game-icon">🧩</span>
+                    <div class="game-title">Neon Tetris</div>
+                    <div class="game-desc">Classic Puzzle<br>Stack blocks and clear lines</div>
+                </div>
+
+                <div class="game-card" onclick="location.href='/game/shaft'">
+                    <span class="game-icon">🪜</span>
+                    <div class="game-title">NS-Shaft</div>
+                    <div class="game-desc">Survival Challenge<br>Go down as deep as you can</div>
+                </div>
             </div>
 
             <a href="/leaderboard" class="btn-leaderboard">🏆 Leaderboard</a>
@@ -190,7 +201,9 @@
             { name: 'Neon Snake', key: 'snake', icon: '🐍' },
             { name: 'Dino Run', key: 'dino', icon: '🦖' },
             { name: 'Whac-A-Ball', key: 'whac', icon: '🔴' },
-            { name: 'Memory Flip', key: 'memory', icon: '🃏' }
+            { name: 'Memory Flip', key: 'memory', icon: '🃏' },
+            { name: 'Tetris', key: 'tetris', icon: '🧩' }, // 新增
+            { name: 'NS-Shaft', key: 'shaft', icon: '🪜' }  // 新增
         ];
 
         document.addEventListener("DOMContentLoaded", fetchAllBestScores);
