@@ -12,7 +12,7 @@ def init_db():
     """ 初始化資料庫 """
     conn = get_db_connection()
     c = conn.cursor()
-    
+    c.execute('PRAGMA journal_mode=WAL;')
     # 建立使用者資料表 (新增 avatar 欄位，預設為 default.png)
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
