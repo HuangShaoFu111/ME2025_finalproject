@@ -32,6 +32,29 @@ CHEAT_CONFIG = {
     'memory': 100.0  # Memory 分數計算是倒扣的，最高 1000。如果 10 秒內完成，平均每秒 100 分。
 }
 
+# 在 app.py 內新增這個輔助函式
+def calculate_dino_max_score(duration):
+    # 參數來自 dino.js
+    start_speed = 600
+    accel = 5
+    max_speed = 1500
+    score_factor = 0.05
+    
+    # 計算達到最大速度需要的時間: (1500 - 600) / 5 = 180秒
+    time_to_cap = (max_speed - start_speed) / accel
+    
+    if duration <= time_to_cap:
+        # 加速階段積分公式: (StartSpeed * t + 0.5 * Accel * t^2) * Factor
+        # = (600*t + 2.5*t^2) * 0.05 = 30t + 0.125t^2
+        return 30 * duration + 0.125 * (duration ** 2)
+    else:
+        # 達到極速後的計算
+        # 前 180 秒的分數固定為 9450
+        base_score = 30 * time_to_cap + 0.125 * (time_to_cap ** 2)
+        # 剩餘時間以最大速度計算: 1500 * 0.05 = 75 分/秒
+        remaining_time = duration - time_to_cap
+        return base_score + (max_speed * score_factor * remaining_time)
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -205,8 +228,20 @@ def submit_score():
     # 4. 驗證分數合理性 (Validation Logic)
     is_cheat = False
     
+    # 加入 2 秒緩衝時間，避免網路延遲導致誤判
+    buffer_time = duration + 2 
+    
+    if game_name == 'dino':
+        # 使用專屬的精準算法
+        theoretical_max = calculate_dino_max_score(buffer_time)
+        # 給予額外 10% 的寬容值，防止瀏覽器計時與伺服器計時的微小差異
+        limit = theoretical_max * 1.1 
+        
+        if score > limit:
+            is_cheat = True
+            print(f"🚫 Dino Cheat: Score {score} > Limit {limit:.2f} (Time: {duration:.2f}s)")
     # 排除極低分 (例如剛開始就死掉)，不需要驗證
-    if score > 10:
+    elif score > 10:
         if game_name in CHEAT_CONFIG:
             max_pps = CHEAT_CONFIG[game_name]
             # 允許 2 秒的網路延遲緩衝 (Buffer)
