@@ -61,7 +61,14 @@ def allowed_file(filename):
 # --- Helper: 取得當前登入者資訊 ---
 def get_current_user():
     if 'user_id' in session:
-        return database.get_user_by_id(session['user_id'])
+        user = database.get_user_by_id(session['user_id'])
+        # ⭐ 關鍵修正：處理從舊資料庫讀取時 equipped_title 為 NULL 的情況
+        if user and user['equipped_title'] is None:
+            # 將 sqlite3.Row 轉換為可修改的字典，以新增/修正欄位值
+            user_dict = dict(user) 
+            user_dict['equipped_title'] = '' 
+            return user_dict
+        return user
     return None
 
 # ==========================================
@@ -432,6 +439,7 @@ def api_equip_title():
             is_unlocked = True
 
     if not is_unlocked:
+        # 這裡返回更詳細的錯誤訊息，幫助前端除錯
         return jsonify({'status': 'error', 'message': f'此稱號尚未解鎖 (需要分數: {title_info["required_score"]})'}), 403
 
     # 2. 裝備稱號
