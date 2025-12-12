@@ -133,7 +133,7 @@ def get_user_scores_by_game(user_id, game_name):
 def get_all_best_scores_by_user_with_rank(user_id):
     """ 獲取特定使用者在所有遊戲中的最高分數及全球排名 (Lobby 專用) """
     conn = get_db_connection()
-    game_names = ['snake', 'dino', 'whac', 'memory']
+    game_names = ['snake', 'dino', 'whac', 'memory', 'tetris', 'shaft']
     results = {}
 
     for game_name in game_names:

@@ -28,16 +28,25 @@
     <div class="game-container">
         <div class="info-bar">
             <div class="score-box">SCORE: <span id="score">0</span></div>
+            
+            <div class="action-buttons">
+                <button id="startBtn" class="btn-primary">START GAME</button>
+            </div>
+
             <div class="score-box">LINES: <span id="lines">0</span></div>
         </div>
 
         <div class="canvas-wrapper">
             <canvas id="tetris" width="240" height="400"></canvas>
-            <div class="controls-hint">
-                <p>← → Move</p>
-                <p>↑ Rotate</p>
-                <p>↓ Drop</p>
-            </div>
+        </div> 
+        <div class="controls-hint">
+            <span>← → Move</span>
+            <span style="margin: 0 10px; color: #555;">|</span>
+            <span>↑ Rotate</span>
+            <span style="margin: 0 10px; color: #555;">|</span>
+            <span>↓ Drop</span>
+            <span style="margin: 0 10px; color: #555;">|</span>
+            <span style="color: var(--primary); font-weight: bold;">Space: Hard Drop</span>
         </div>
         
         <div style="margin-top: 15px;">

@@ -1,55 +1,151 @@
-/* 繼承 global.css 風格，針對 Tetris 微調 */
+/* static/tetris.css - 寬敞修正版 */
+
+/* === 全局背景繼承 === */
 body {
     background: radial-gradient(circle at center, #1e1b4b 0%, #000000 100%);
-    overflow: hidden;
+    overflow: hidden; /* 防止捲軸出現 */
 }
 
-.title { color: #d946ef; text-shadow: 0 0 10px #d946ef; }
+.title { 
+    color: #d946ef; 
+    text-shadow: 0 0 10px #d946ef;
+    margin-bottom: 20px;
+    font-size: 3rem;
+}
 
+/* === 遊戲主容器 === */
 .game-container {
     display: flex;
     flex-direction: column;
     align-items: center;
+    
+    /* 關鍵修改：放寬寬度，讓內容有呼吸空間 */
+    width: 600px;         /* 設定一個足夠寬的基準 */
+    max-width: 95vw;      /* 在手機上也不會爆版 */
+    
+    padding: 30px;        /* 內部留白 */
+    gap: 25px;            /* 上下區塊的間距 */
+    
+    /* 玻璃擬態邊框 */
     background: rgba(20, 20, 30, 0.6);
-    padding: 20px;
-    border-radius: 16px;
+    border-radius: 20px;
     border: 1px solid rgba(217, 70, 239, 0.3);
     box-shadow: 0 0 40px rgba(217, 70, 239, 0.15);
+    
+    /* 確保容器置中 */
+    margin: 20px auto; 
 }
 
+/* === 上方資訊列 (Score | Button | Lines) === */
 .info-bar {
     display: flex;
-    justify-content: space-between;
-    width: 240px;
-    margin-bottom: 10px;
+    justify-content: space-between; /* 左右撐開，中間放按鈕 */
+    align-items: center;            /* 垂直置中 */
+    width: 100%;                    /* 填滿容器寬度 */
+    
+    /* 獨立背景色，讓資訊列更明顯 */
+    background: rgba(0, 0, 0, 0.4);
+    padding: 15px 30px;             /* 左右多留一點空間 */
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    
+    /* 防止擠壓：確保這一列永遠不會換行 */
+    flex-wrap: nowrap; 
 }
 
+/* 分數文字 */
 .score-box {
     font-family: 'Orbitron', monospace;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     color: #fff;
+    white-space: nowrap; /* 禁止文字換行 */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    
+    /* 固定最小寬度，避免被按鈕擠歪 */
+    min-width: 120px; 
 }
 
+.score-box:last-child {
+    justify-content: flex-end; /* 右邊的 LINES 靠右對齊 */
+}
+
+.score-box span {
+    color: #d946ef; /* 數字顏色 */
+    font-weight: bold;
+}
+
+/* === 中間按鈕區域 === */
+.action-buttons {
+    flex-shrink: 0; /* 禁止按鈕被壓縮 */
+    margin: 0 10px;
+}
+
+.btn-primary {
+    padding: 10px 25px;
+    font-size: 1rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    white-space: nowrap;
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+}
+
+/* === 遊戲畫布與外框 === */
 .canvas-wrapper {
     position: relative;
-    border: 2px solid #d946ef;
+    /* 畫布外框發光 */
+    border: 3px solid #d946ef;
+    border-radius: 4px;
     background: #000;
-    box-shadow: inset 0 0 20px rgba(217, 70, 239, 0.2);
+    box-shadow: 
+        0 0 20px rgba(217, 70, 239, 0.2), 
+        inset 0 0 20px rgba(0,0,0,0.5);
+        
+    /* 確保畫布置中 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
+/* 讓 Canvas 保持正確大小 */
+canvas {
+    display: block;
+    /* 這裡不需要強制設 width，讓 js 控制 canvas 實際像素 */
+}
+
+/* === 底部操作提示 === */
 .controls-hint {
-    position: absolute;
-    bottom: -80px;
-    width: 100%;
+    color: #94a3b8;
+    font-size: 0.9rem;
     text-align: center;
-    color: #888;
-    font-size: 0.8rem;
-    line-height: 1.4;
+    letter-spacing: 1px;
+    margin-top: -10px; /* 稍微拉近一點 */
 }
 
-/* Modal 樣式直接沿用 global 或 Snake */
+/* === Modal (維持原本設定) === */
 .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 999; backdrop-filter: blur(5px); }
 .hidden { display: none; }
 .modal-content { background: #1f2937; padding: 40px; border-radius: 20px; text-align: center; border: 1px solid #d946ef; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
 .modal-content h2 { color: #d946ef; margin: 0 0 20px 0; }
 .modal-buttons { display: flex; gap: 15px; justify-content: center; margin-top: 20px;}
+
+/* === 回大廳按鈕 === */
+.btn-lobby {
+    margin-top: 10px;
+    color: #94a3b8;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 8px 20px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.btn-lobby:hover {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    border-color: white;
+}

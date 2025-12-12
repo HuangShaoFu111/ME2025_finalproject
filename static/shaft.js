@@ -2,52 +2,133 @@ const canvas = document.getElementById("shaftCanvas");
 const ctx = canvas.getContext("2d");
 const depthEl = document.getElementById("depth");
 const hpEl = document.getElementById("hp");
+const startBtn = document.getElementById("startBtn");
 
 // Modal
 const modal = document.getElementById("gameOverModal");
 const finalScoreEl = document.getElementById("finalScore");
 const uploadStatusEl = document.getElementById("uploadStatus");
 
-let gameState = "PLAYING"; 
+let gameState = "IDLE"; 
 let score = 0;
 let hp = 100;
 let frameCount = 0;
+let animationId = null; 
+let lastTime = 0; 
+
+// ==========================================
+// 🏆 黃金參數配方 (Golden Physics Recipe)
+// ==========================================
+const PHYSICS = {
+    gravity: 0.6,          
+    moveSpeed: 3,        
+    friction: 0.7,         
+    jumpForce: -16,        
+    maxFallSpeed: 2,      
+    platformStartSpeed: 1, 
+    platformAccel: 1500    
+};
 
 // 玩家設定
-const player = {
+const initialPlayerState = {
     x: 150, y: 100, w: 20, h: 20,
     vx: 0, vy: 0,
-    speed: 5,
-    onGround: false
+    onGround: false,
+    invincibleUntil: 0, 
+    isHurt: false       
 };
+
+let player = { ...initialPlayerState };
 
 // 平台設定
 const platforms = [];
 const platformWidth = 70;
 const platformHeight = 15;
-let platformSpeed = 2;
+let platformSpeed = PHYSICS.platformStartSpeed;
 
 // 按鍵監聽
 const keys = { ArrowLeft: false, ArrowRight: false };
 
-document.addEventListener("keydown", (e) => { if(keys.hasOwnProperty(e.code)) keys[e.code] = true; });
+// 🚀 [關鍵修改] 鍵盤事件監聽：加入「按任意鍵開始」邏輯
+document.addEventListener("keydown", (e) => { 
+    // 1. 如果遊戲不在進行中 (IDLE 或 GAMEOVER)
+    if (gameState !== "PLAYING") {
+        // 排除 F1-F12、Ctrl、Alt 組合鍵，避免誤觸瀏覽器功能
+        if (e.key.startsWith("F") || e.ctrlKey || e.altKey || e.metaKey) return;
+        
+        // 啟動遊戲
+        startGame();
+        e.preventDefault(); // 防止空白鍵捲動網頁
+        return;
+    }
+
+    // 2. 遊戲進行中的正常操作
+    // 防止按方向鍵捲動網頁
+    if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].indexOf(e.code) > -1) {
+        e.preventDefault();
+    }
+    if(keys.hasOwnProperty(e.code)) keys[e.code] = true; 
+});
+
 document.addEventListener("keyup", (e) => { if(keys.hasOwnProperty(e.code)) keys[e.code] = false; });
 
-// 初始化平台
-function init() {
-    platforms.length = 0;
-    for(let i=0; i<6; i++) {
-        spawnPlatform(100 + i * 90);
+startBtn.addEventListener("click", startGame);
+
+function startGame() {
+    if (gameState === "PLAYING") return;
+
+    if (gameState === "GAMEOVER") {
+        resetGame();
     }
-    gameLoop();
+    
+    gameState = "PLAYING";
+    
+    startBtn.disabled = true;
+    startBtn.style.opacity = "0.5";
+    startBtn.textContent = "RUNNING...";
+    modal.classList.add("hidden");
+
+    lastTime = performance.now();
+    gameLoop(lastTime);
 }
 
-function spawnPlatform(y) {
-    // type: 0=normal(green), 1=spikes(red), 2=fake(translucent)
-    let type = 0;
-    const rand = Math.random();
-    if (rand < 0.2) type = 1; // 20% Spikes
-    else if (rand < 0.4) type = 2; // 20% Fake
+function resetGame() {
+    score = 0;
+    hp = 100;
+    frameCount = 0;
+    depthEl.innerText = 0;
+    hpEl.innerText = 100;
+    hpEl.style.color = '#4ade80';
+    platformSpeed = PHYSICS.platformStartSpeed; 
+
+    player = { ...initialPlayerState };
+
+    platforms.length = 0;
+    for(let i=0; i<7; i++) {
+        spawnPlatform(100 + i * 85, true); 
+    }
+
+    const startPlatform = platforms[3]; 
+    player.x = startPlatform.x + (startPlatform.w / 2) - (player.w / 2);
+    player.y = startPlatform.y - player.h - 2; 
+    player.vx = 0;
+    player.vy = 0;
+}
+
+function spawnPlatform(y, safe = false) {
+    let type = 0; 
+    let hasHealth = false;
+
+    if (!safe) {
+        const rand = Math.random();
+        if (rand < 0.2) type = 1;      // Spikes
+        else if (rand < 0.35) type = 2; // Fake
+        else if (rand < 0.45) type = 3; // Spring
+        
+        if (type === 0 && Math.random() < 0.05) {
+            hasHealth = true;
+        }
+    }
     
     platforms.push({
         x: Math.random() * (canvas.width - platformWidth),
@@ -55,96 +136,143 @@ function spawnPlatform(y) {
         w: platformWidth,
         h: platformHeight,
         type: type,
-        active: true
+        hasHealth: hasHealth,
+        isSpringActive: false 
     });
 }
 
-function update() {
+function update(deltaTime) {
     if(gameState !== "PLAYING") return;
 
     frameCount++;
     score = Math.floor(frameCount / 10);
     depthEl.innerText = score;
 
-    // 1. 玩家物理
-    if (keys.ArrowLeft) player.x -= player.speed;
-    if (keys.ArrowRight) player.x += player.speed;
+    // === 1. 玩家水平移動 ===
+    if (keys.ArrowLeft) {
+        player.vx = -PHYSICS.moveSpeed;
+    } else if (keys.ArrowRight) {
+        player.vx = PHYSICS.moveSpeed;
+    } else {
+        player.vx *= PHYSICS.friction;
+        if (Math.abs(player.vx) < 0.1) player.vx = 0;
+    }
 
-    // 邊界檢查
+    player.x += player.vx;
+
     if (player.x < 0) player.x = 0;
     if (player.x + player.w > canvas.width) player.x = canvas.width - player.w;
 
-    player.vy += 0.5; // 重力
+    // === 2. 垂直物理 ===
+    player.vy += PHYSICS.gravity; 
+    
+    if (player.vy > PHYSICS.maxFallSpeed) {
+        player.vy = PHYSICS.maxFallSpeed;
+    }
+    
     player.y += player.vy;
 
-    // 2. 平台移動與生成
-    // 難度增加：深度越深，平台上升越快
-    const currentSpeed = platformSpeed + (score / 500);
+    // === 3. 平台移動 ===
+    const speedBoost = Math.min(3, score / PHYSICS.platformAccel); 
+    const currentSpeed = platformSpeed + speedBoost;
     
     platforms.forEach(p => p.y -= currentSpeed);
 
-    // 移除過頂部的平台，並在底部生成新的
     if (platforms[0].y + platformHeight < 0) {
         platforms.shift();
         spawnPlatform(canvas.height);
     }
 
-    // 3. 碰撞檢測
+    // === 4. 碰撞檢測 ===
     player.onGround = false;
+    
+    const now = performance.now();
+    const isInvincible = now < player.invincibleUntil;
+    player.isHurt = isInvincible; 
+
     platforms.forEach(p => {
-        if (player.vy > 0 && // 往下掉時才判定
-            player.x + player.w > p.x &&
-            player.x < p.x + p.w &&
-            player.y + player.h >= p.y &&
-            player.y + player.h <= p.y + p.h + 5 // 寬容度
+        if (player.vy > 0 && 
+            player.x + player.w > p.x + 5 && 
+            player.x < p.x + p.w - 5 &&
+            player.y + player.h >= p.y &&     
+            player.y + player.h <= p.y + p.h + 10 
         ) {
-            if (p.type === 2) return; // 虛假平台穿過
+            if (p.type === 2) return; 
 
             player.y = p.y - player.h;
-            player.vy = -currentSpeed; // 跟著平台往上
+            player.vy = -currentSpeed; 
             player.onGround = true;
 
-            if (p.type === 1) { // 尖刺
-                hp -= 2;
-                hpEl.style.color = 'red';
-            } else {
-                hpEl.style.color = '#4ade80';
+            if (p.type === 1) { // Spikes
+                if (!isInvincible) {
+                    takeDamage(15); 
+                    player.vy = -4; 
+                }
+            } 
+            else if (p.type === 3) { // Spring
+                player.vy = PHYSICS.jumpForce; 
+                p.isSpringActive = true;
+                setTimeout(() => p.isSpringActive = false, 200); 
+            }
+            else { // Normal
+                if (p.hasHealth) {
+                    hp = Math.min(100, hp + 10); 
+                    p.hasHealth = false; 
+                    hpEl.style.color = '#4ade80';
+                }
             }
         }
     });
 
-    // 頂部尖刺傷害 (碰到天花板)
     if (player.y < 10) {
-        hp -= 5;
+        if (!isInvincible) {
+            takeDamage(20);
+            player.vy = 5; 
+        }
         player.y = 10;
-        player.vy = 2; // 反彈
     }
 
     hpEl.innerText = Math.floor(hp);
+    
+    if(hp <= 30) hpEl.style.color = '#ef4444';
+    else if(hp > 30 && hp < 100) hpEl.style.color = '#facc15';
 
-    // 死亡判定 (掉到底部 或 HP歸零)
     if (player.y > canvas.height || hp <= 0) {
         gameOver();
     }
 }
 
+function takeDamage(amount) {
+    hp -= amount;
+    player.invincibleUntil = performance.now() + 1000; 
+}
+
 function draw() {
-    // 清空背景
     ctx.fillStyle = "#111";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // 畫平台
     platforms.forEach(p => {
-        if(p.type === 0) ctx.fillStyle = "#4ade80"; // Normal
-        if(p.type === 1) ctx.fillStyle = "#ef4444"; // Spikes (Red)
-        if(p.type === 2) ctx.fillStyle = "rgba(255, 255, 255, 0.2)"; // Fake
-        
+        let color = "#4ade80"; // Normal
+        if(p.type === 1) color = "#ef4444"; // Spikes
+        if(p.type === 2) color = "rgba(255, 255, 255, 0.2)"; // Fake
+        if(p.type === 3) color = "#f472b6"; // Spring
+
+        ctx.fillStyle = color;
         ctx.shadowBlur = 10;
-        ctx.shadowColor = ctx.fillStyle;
-        ctx.fillRect(p.x, p.y, p.w, p.h);
+        ctx.shadowColor = color;
+
+        let drawY = p.y;
+        let drawH = p.h;
+        if (p.type === 3 && p.isSpringActive) {
+            drawY += 5;
+            drawH -= 5;
+        }
+
+        ctx.fillRect(p.x, drawY, p.w, drawH);
         
-        // 尖刺特效
         if(p.type === 1) {
+             ctx.fillStyle = "#ef4444";
              ctx.beginPath();
              for(let i=0; i<p.w; i+=10) {
                  ctx.moveTo(p.x + i, p.y);
@@ -153,33 +281,59 @@ function draw() {
              }
              ctx.fill();
         }
+
+        if(p.type === 3) {
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(p.x + 10, drawY - 3, p.w - 20, 3);
+        }
+
+        if (p.hasHealth) {
+            ctx.fillStyle = "#ff0000";
+            ctx.shadowColor = "#ff0000";
+            ctx.font = "16px Arial";
+            ctx.fillText("❤️", p.x + p.w/2 - 8, p.y - 5);
+        }
     });
 
     // 畫玩家
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = "#facc15";
-    ctx.fillStyle = "#facc15";
-    ctx.fillRect(player.x, player.y, player.w, player.h);
-    // 眼睛
-    ctx.fillStyle = "black";
-    ctx.shadowBlur = 0;
-    if (keys.ArrowLeft) {
-        ctx.fillRect(player.x+2, player.y+5, 4, 4);
+    if (player.isHurt && Math.floor(performance.now() / 100) % 2 === 0) {
+        // 閃爍
     } else {
-        ctx.fillRect(player.x+12, player.y+5, 4, 4);
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = "#facc15";
+        ctx.fillStyle = "#facc15";
+        ctx.fillRect(player.x, player.y, player.w, player.h);
+        
+        ctx.fillStyle = "black";
+        ctx.shadowBlur = 0;
+        if (keys.ArrowLeft) {
+            ctx.fillRect(player.x+2, player.y+5, 4, 4);
+        } else {
+            ctx.fillRect(player.x+12, player.y+5, 4, 4);
+        }
     }
 }
 
-function gameLoop() {
+function gameLoop(timestamp) {
     if(gameState === "PLAYING") {
-        update();
+        const deltaTime = timestamp - lastTime;
+        lastTime = timestamp;
+        update(deltaTime);
         draw();
-        requestAnimationFrame(gameLoop);
+        animationId = requestAnimationFrame(gameLoop);
+    } else {
+        draw(); 
+        requestAnimationFrame(() => gameLoop(performance.now())); 
     }
 }
 
 function gameOver() {
     gameState = "GAMEOVER";
+    
+    startBtn.disabled = false;
+    startBtn.style.opacity = "1";
+    startBtn.textContent = "RETRY MISSION";
+
     modal.classList.remove("hidden");
     finalScoreEl.innerText = score;
 
@@ -202,4 +356,6 @@ function gameOver() {
     });
 }
 
-init();
+// 啟動初始化
+resetGame();
+gameLoop(performance.now());
