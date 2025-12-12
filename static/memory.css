@@ -25,7 +25,7 @@ body {
 
 /* === 遊戲主容器 (Flexbox 置中) === */
 .game-container {
-    padding: 30px;
+    padding: 40px;
     background: rgba(20, 30, 50, 0.7); /* 調整背景色與其他遊戲一致 */
     border-radius: 20px;
     backdrop-filter: blur(12px);
