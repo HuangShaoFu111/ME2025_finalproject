@@ -1,4 +1,4 @@
-/* static/whac.js - Gridshot Mode */
+/* static/whac.js - Anti-Cheat Version */
 
 const gameArea = document.getElementById("gameArea");
 const scoreEl = document.getElementById("score");
@@ -12,44 +12,57 @@ const uploadStatusEl = document.getElementById("uploadStatus");
 const modalRestartBtn = document.getElementById("modalRestartBtn");
 
 let score = 0;
-let timeLeft = 60; // 改為 60 秒標準測試
+let timeLeft = 60;
 let timerInterval;
 let isPlaying = false;
-const MAX_BALLS = 3; // 場上固定 3 顆球
-const SCORE_PER_HIT = 10; // 每球 10 分
+const MAX_BALLS = 3; 
+const SCORE_PER_HIT = 10; 
 
-// 事件綁定
+// 🛡️ 防作弊參數
+let lastClickTime = 0;
+const HUMAN_LIMIT_MS = 100; // 人類極限手速 (兩次點擊間隔至少 100ms)
+
 startBtn.addEventListener("click", startGame);
 modalRestartBtn.addEventListener("click", startGame);
 
-// 使用事件委派 (Event Delegation) 處理點擊
-// 這樣不用對每顆新球重新綁定事件，效能更好
 gameArea.addEventListener("mousedown", (e) => {
     if (!isPlaying) return;
 
+    // 🛡️ 1. 檢查是否為真實硬體觸發
+    if (!e.isTrusted) {
+        console.warn("⚠️ Script detected: Untrusted Event");
+        return; // 直接忽略，不加分
+    }
+
     const target = e.target.closest('.target-ball');
     if (target) {
-        handleHit(target);
-    } else {
-        // 點空了 (Miss) - 可以選擇扣分或播放音效，這裡暫不扣分
-        // score = Math.max(0, score - 5);
-        // scoreEl.textContent = score;
+        // 🛡️ 2. 檢查是否點到了「隱形陷阱球」
+        if (target.classList.contains('trap-ball')) {
+            console.warn("⚠️ Script detected: Trap Hit");
+            score -= 50; // 踩到陷阱重扣分
+            scoreEl.textContent = score;
+            target.remove();
+            spawnBall(true); // 補一顆陷阱回去
+            return;
+        }
+
+        handleHit(target, e);
     }
 });
 
 function startGame() {
+    // 通知後端開始
     fetch('/api/start_game', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ game_name: 'whac' })
     });
 
-    // 重置變數
     score = 0;
-    timeLeft = 60; // 60秒
+    timeLeft = 60;
     isPlaying = true;
+    lastClickTime = 0;
 
-    // UI 更新
     scoreEl.textContent = score;
     timeEl.textContent = timeLeft;
     modal.classList.add("hidden");
@@ -57,51 +70,71 @@ function startGame() {
     startBtn.textContent = "AIM TRAINER...";
     startBtn.style.opacity = "0.5";
 
-    // 清空場地並生成初始球
     gameArea.innerHTML = '';
+    
+    // 生成正常球
     for (let i = 0; i < MAX_BALLS; i++) {
-        spawnBall();
+        spawnBall(false);
     }
+    
+    // 🛡️ 生成 1~2 顆隱形陷阱球
+    spawnBall(true);
+    spawnBall(true);
 
-    // 啟動計時器
     clearInterval(timerInterval);
     timerInterval = setInterval(updateTimer, 1000);
 }
 
-function handleHit(ballElement) {
-    // 1. 加分
+function handleHit(ballElement, e) {
+    const now = performance.now();
+    
+    // 🛡️ 3. 檢查點擊間隔 (防止瞬間多點)
+    if (now - lastClickTime < HUMAN_LIMIT_MS) {
+        console.warn("⚠️ Click too fast, ignored.");
+        return; 
+    }
+    lastClickTime = now;
+
+    // 加分
     score += SCORE_PER_HIT;
     scoreEl.textContent = score;
 
-    // 2. 特效 (取得球的中心點)
+    // 特效
     const rect = ballElement.getBoundingClientRect();
     const areaRect = gameArea.getBoundingClientRect();
     const x = (rect.left - areaRect.left) + (rect.width / 2) - 30;
     const y = (rect.top - areaRect.top) + (rect.height / 2) - 30;
     createExplosion(x, y);
 
-    // 3. 移除被點擊的球
     ballElement.remove();
-
-    // 4. 立刻補一顆新球
-    spawnBall();
+    spawnBall(false); // 補一顆正常球
 }
 
-function spawnBall() {
+/**
+ * 生成球體
+ * @param {boolean} isTrap - 是否為陷阱球
+ */
+function spawnBall(isTrap = false) {
     if (!isPlaying) return;
 
-    const size = 70; // 固定大小，Gridshot 通常球大小一致比較公平
+    const size = 70;
     const ball = document.createElement("div");
     ball.classList.add("target-ball");
+    
+    if (isTrap) {
+        ball.classList.add("trap-ball");
+        // 隱藏陷阱球：設為透明，但 pointer-events 必須是 auto 才能被點到
+        ball.style.opacity = "0"; 
+        ball.style.zIndex = "10"; // 讓它覆蓋在某些區域上，增加誤觸機率
+    }
+
     ball.style.width = size + "px";
     ball.style.height = size + "px";
-    ball.style.display = "block"; // 確保顯示
+    ball.style.display = "block";
 
-    // 計算隨機位置 (防止超出邊界)
     const maxX = gameArea.clientWidth - size;
     const maxY = gameArea.clientHeight - size;
 
-    // 簡單的防止重疊邏輯 (嘗試 10 次找到空位)
     let x, y, overlap;
     let attempts = 0;
     do {
@@ -109,16 +142,12 @@ function spawnBall() {
         y = Math.random() * maxY;
         overlap = false;
 
-        // 檢查是否與現有的球重疊
         const existingBalls = document.querySelectorAll('.target-ball');
         for (let other of existingBalls) {
             const r = other.getBoundingClientRect();
-            const otherX = other.offsetLeft;
-            const otherY = other.offsetTop;
-            
-            // 計算距離
-            const dist = Math.sqrt(Math.pow(x - otherX, 2) + Math.pow(y - otherY, 2));
-            if (dist < size + 10) { // 保持至少 10px 間距
+            // 簡單距離判斷
+            const dist = Math.sqrt(Math.pow(x - other.offsetLeft, 2) + Math.pow(y - other.offsetTop, 2));
+            if (dist < size + 10) {
                 overlap = true;
                 break;
             }
@@ -129,22 +158,21 @@ function spawnBall() {
     ball.style.left = x + "px";
     ball.style.top = y + "px";
 
-    // 加入裝飾 (準心線)
-    ball.innerHTML = '<div class="inner-circle"></div><div class="crosshair"></div>';
-    
+    if (!isTrap) {
+        ball.innerHTML = '<div class="inner-circle"></div><div class="crosshair"></div>';
+        // 只有正常球有動畫
+        ball.animate([
+            { transform: 'scale(0)' },
+            { transform: 'scale(1)' }
+        ], { duration: 150, easing: 'ease-out' });
+    }
+
     gameArea.appendChild(ball);
-    
-    // 出現動畫
-    ball.animate([
-        { transform: 'scale(0)' },
-        { transform: 'scale(1)' }
-    ], { duration: 150, easing: 'ease-out' });
 }
 
 function updateTimer() {
     timeLeft--;
     timeEl.textContent = timeLeft;
-
     if (timeLeft <= 0) {
         endGame();
     }
@@ -162,8 +190,6 @@ function createExplosion(x, y) {
 function endGame() {
     isPlaying = false;
     clearInterval(timerInterval);
-    
-    // 清空場上的球
     gameArea.innerHTML = '';
 
     startBtn.disabled = false;
@@ -178,10 +204,7 @@ function endGame() {
     fetch('/api/submit_score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            game_name: 'whac',
-            score: score
-        })
+        body: JSON.stringify({ game_name: 'whac', score: score })
     })
     .then(res => res.json())
     .then(data => {
