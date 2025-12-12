@@ -9,14 +9,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-
     <div class="user-menu">
         <div class="user-profile-btn" style="cursor: default;"> 
             <div class="avatar-display">
                 {% if user.avatar == 'default.png' %}
-                    <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=0f172a&color=fff" alt="User Avatar">
+                    <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=0f172a&color=fff" alt="User">
                 {% else %}
-                    <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" alt="User Avatar">
+                    <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" alt="User">
                 {% endif %}
             </div>
             <span class="username-display">{{ user.username }}</span>
@@ -27,14 +26,24 @@
 
     <div class="game-container">
         <div class="info-bar">
-            <div class="score-box">SCORE: <span id="score">0</span></div>
-            <button class="btn-lobby" onclick="location.href='/lobby'">
-                <i class="fa-solid fa-house"></i> Lobby
-            </button>
-        </div>
+            <div class="stat-box">SCORE: <span id="score">0</span></div>
+            <button id="startBtn" class="btn-primary" onclick="initGame()">START GAME</button> 
+            <div class="stat-box" style="opacity: 0;">HIDDEN</div> </div>
 
         <div class="canvas-wrapper">
             <canvas id="gameCanvas" width="400" height="400"></canvas>
+        </div>
+
+        <div class="controls-hint">
+            <span><i class="fa-solid fa-arrows-up-down-left-right"></i> Move</span>
+            <span class="divider">|</span>
+            <span>Eat <span style="color:#ff3b3b">●</span> to Grow</span>
+        </div>
+
+        <div style="margin-top: 15px;">
+            <button class="btn-lobby" onclick="location.href='/lobby'">
+                <i class="fa-solid fa-house"></i> Lobby
+            </button>
         </div>
     </div>
 
