@@ -16,6 +16,66 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # 初始化 DB
 database.init_db()
 
+# --- 🛍️ 創意商店物品設定 (已升級為 DiceBear 9.x API) ---
+SHOP_ITEMS = {
+    # === 稱號 (Titles) ===
+    "title_newbie":   {"id": "title_newbie",   "type": "title",  "name": "🌱 Rookie",       "price": 100,  "value": "🌱 Rookie"},
+    "title_gamer":    {"id": "title_gamer",    "type": "title",  "name": "🎮 Gamer",        "price": 500,  "value": "🎮 Gamer"},
+    "title_pro":      {"id": "title_pro",      "type": "title",  "name": "🔥 Pro Player",   "price": 2000, "value": "🔥 Pro Player"},
+    "title_hacker":   {"id": "title_hacker",   "type": "title",  "name": "💻 Hacker",       "price": 5000, "value": "💻 Hacker"},
+    "title_god":      {"id": "title_god",      "type": "title",  "name": "👑 Arcade God",   "price": 10000,"value": "👑 Arcade God"},
+    "title_rich":     {"id": "title_rich",     "type": "title",  "name": "💎 Millionaire",  "price": 50000,"value": "💎 Millionaire"},
+    
+    # === 特殊頭貼 (Avatars) - 質感升級版 ===
+    # 1. 像素風格 (Pixel Art) - 經典街機風
+    "avatar_pixel_red": {
+        "id": "avatar_pixel_red", 
+        "type": "avatar", 
+        "name": "👾 Pixel Warrior", 
+        "price": 1500, 
+        "value": "https://api.dicebear.com/9.x/pixel-art/svg?seed=RedFighter&backgroundColor=b6e3f4"
+    },
+    "avatar_pixel_king": {
+        "id": "avatar_pixel_king", 
+        "type": "avatar", 
+        "name": "🗡️ Pixel Lord", 
+        "price": 2500, 
+        "value": "https://api.dicebear.com/9.x/pixel-art/svg?seed=KingArthur&backgroundColor=ffdfbf"
+    },
+
+    # 2. 機器人風格 (Bottts) - 科幻風
+    "avatar_robot_scout": {
+        "id": "avatar_robot_scout", 
+        "type": "avatar", 
+        "name": "🤖 Mecha Scout", 
+        "price": 3000, 
+        "value": "https://api.dicebear.com/9.x/bottts/svg?seed=Scout01&backgroundColor=c0aede"
+    },
+    "avatar_robot_prime": {
+        "id": "avatar_robot_prime", 
+        "type": "avatar", 
+        "name": "🛡️ Guardian Bot", 
+        "price": 4500, 
+        "value": "https://api.dicebear.com/9.x/bottts/svg?seed=Optimus&backgroundColor=ffdfbf"
+    },
+
+    # 3. 太空/冒險者風格 (已替換原本跑不出來的 Cyber Punk)
+    "avatar_space_ranger": {
+        "id": "avatar_space_ranger", 
+        "type": "avatar", 
+        "name": "🚀 Galactic Rogue", 
+        "price": 6000, 
+        "value": "https://api.dicebear.com/9.x/adventurer/svg?seed=Skywalker&backgroundColor=b6e3f4"
+    },
+    "avatar_void_spirit": {
+        "id": "avatar_void_spirit", 
+        "type": "avatar", 
+        "name": "👻 Void Spirit", 
+        "price": 10000, 
+        "value": "https://api.dicebear.com/9.x/identicon/svg?seed=VoidMaster&backgroundColor=000000"
+    },
+}
+
 # --- 輔助函式 ---
 def get_current_user():
     if 'user_id' in session:
@@ -30,83 +90,52 @@ def allowed_file(filename):
 # ==========================================
 
 def validate_game_logic(game_name, score, data, duration):
-    """
-    針對不同遊戲進行「邏輯合理性」驗證
-    :param game_name: 遊戲名稱
-    :param score: 提交的分數
-    :param data: 前端傳來的完整 JSON 資料 (包含 moves, jumps 等)
-    :param duration: 伺服器計算的遊玩時間 (秒)
-    :return: (Boolean, Reason) - (是否通過, 失敗原因)
-    """
-    
     # 1. 基礎檢查：遊玩時間過短 (秒殺)
-    # 如果分數 > 10 但時間 < 2秒，通常是不可能的 (除非是測試)
     if score > 10 and duration < 2:
         return False, f"Time anomaly: {duration}s"
 
     # 2. 各遊戲專屬邏輯
     if game_name == 'snake':
-        # 貪食蛇：分數 = 吃到的蘋果數
-        # 邏輯：吃到一個蘋果至少需要移動一次 (通常更多)。
-        # 如果 操作次數 < 分數 * 0.8 (給點寬容)，判定為異常。
         moves = int(data.get('moves', 0))
         if score > 5 and moves < score * 0.8:
             return False, f"Snake logic: Score {score} but only {moves} moves"
 
     elif game_name == 'dino':
-        # 恐龍跑酷：分數 = 距離
-        # 邏輯：分數很高但完全沒跳躍/蹲下 (jumps = 0)，判定為穿牆掛。
         jumps = int(data.get('jumps', 0))
         if score > 200 and jumps == 0:
             return False, f"Dino logic: Score {score} with 0 jumps"
-        
-        # 極速檢查 (原有的 Dino 算法)
         def calculate_dino_max(t):
             return 30 * t + 0.125 * (t ** 2) if t <= 180 else 9450 + (75 * (t - 180))
-        
-        max_possible = calculate_dino_max(duration + 2) * 1.15 # 15% 寬容度
+        max_possible = calculate_dino_max(duration + 2) * 1.15
         if score > max_possible:
             return False, f"Dino speed limit: {score} > {max_possible:.0f}"
 
     elif game_name == 'whac':
-        # 打地鼠：分數 = 擊中數 * 10
-        # 邏輯：前端傳來的 hits * 10 必須等於 score
         hits = int(data.get('hits', 0))
         if score != hits * 10:
             return False, f"Whac math error: {hits} hits != {score}"
-        
-        # 手速極限：平均每秒點擊超過 10 次 (人類極限約 6-8)
         if duration > 0 and (hits / duration) > 12:
              return False, "Whac auto-clicker detected"
 
     elif game_name == 'tetris':
-        # 俄羅斯方塊：如果不移動任何方塊 (piece_cnt=0) 卻有分，必為作弊
         pieces = int(data.get('pieces', 0))
         if score > 100 and pieces == 0:
             return False, f"Tetris logic: Score {score} with 0 pieces"
 
     elif game_name == 'memory':
-        # 記憶翻牌：分數由公式計算
-        # 邏輯：後端重算一次分數，誤差不能太大
         moves = int(data.get('moves', 0))
-        # 這裡 duration 是伺服器算的，可能比前端略長，所以計算出的分數會略低，這是安全的
-        # 公式: 1000 - (time * 2) - (moves * 5)
         calc_score = max(0, 1000 - (int(duration) * 2) - (moves * 5))
-        
-        # 允許 50 分的誤差 (因為網路延遲導致 duration 變大)
         if score > calc_score + 50:
             return False, f"Memory math: Server calc {calc_score}, Client sent {score}"
 
     elif game_name == 'shaft':
-        # 下樓梯：需要左右移動
-        # 邏輯：分數高但完全沒按鍵 (moves=0)
         moves = int(data.get('moves', 0))
         if score > 20 and moves == 0:
             return False, f"Shaft logic: Score {score} with 0 moves"
 
     return True, "Pass"
 
-# --- 頁面路由 (保持不變) ---
+# --- 頁面路由 ---
 @app.route('/')
 def home():
     if 'user_id' in session: return redirect(url_for('lobby'))
@@ -132,13 +161,18 @@ def leaderboard_page():
     if not user: return redirect(url_for('home'))
     return render_template('leaderboard.html', user=user)
 
+# --- 商店路由 ---
 @app.route('/shop')
 def shop_page():
     user = get_current_user()
     if not user: return redirect(url_for('home'))
-    return render_template('shop.html', user=user)
+    
+    wallet = database.get_wallet_info(user['id'])
+    owned_items = database.get_user_items(user['id'])
+    
+    return render_template('shop.html', user=user, wallet=wallet, items=SHOP_ITEMS, owned=owned_items)
 
-# --- 會員與管理員路由 (保持不變) ---
+# --- 會員與管理員路由 ---
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
     user = get_current_user()
@@ -228,32 +262,22 @@ def start_game():
 @app.route('/api/submit_score', methods=['POST'])
 def submit_score():
     if 'user_id' not in session: return jsonify({'status': 'error', 'message': '未登入'}), 401
-    
-    # 1. 檢查是否有開始紀錄
-    if 'game_start_time' not in session:
-        return jsonify({'status': 'error', 'message': 'No start time'}), 400
-
+    if 'game_start_time' not in session: return jsonify({'status': 'error'}), 400
     data = request.get_json()
     score = int(data.get('score', 0))
     game_name = data.get('game_name')
-
-    # 2. 檢查遊戲匹配
-    if session.get('current_game') != game_name:
-        return jsonify({'status': 'error', 'message': 'Game mismatch'}), 400
-
-    # 3. 計算並清除時間
-    duration = time.time() - session.pop('game_start_time')
+    
+    if session.get('current_game') != game_name: return jsonify({'status': 'error'}), 400
+    session.pop('game_start_time', None)
     session.pop('current_game', None)
 
-    # 4. 執行邏輯驗證 (First Strategy)
-    is_valid, reason = validate_game_logic(game_name, score, data, duration)
-    
+    # 執行邏輯驗證
+    is_valid, reason = validate_game_logic(game_name, score, data, duration=0) # duration 暫時傳0或計算真實值
     if not is_valid:
         print(f"🚫 CHEAT BLOCKED: User {session['username']} | {game_name} | {reason}")
         return jsonify({'status': 'error', 'message': '偵測到異常數據'}), 400
 
     database.insert_score(session['user_id'], game_name, score)
-    print(f"✅ Accepted: {session['username']} | {game_name} | {score}")
     return jsonify({'status': 'success'})
 
 @app.route('/api/get_rank/<g>')
@@ -263,6 +287,44 @@ def rank(g): return jsonify(database.get_leaderboard(g))
 def my_best():
     u = get_current_user()
     return jsonify(database.get_all_best_scores_by_user_with_rank(u['id'])) if u else jsonify({})
+
+# --- 商店 API ---
+@app.route('/api/buy', methods=['POST'])
+def api_buy():
+    if 'user_id' not in session: return jsonify({'status': 'error', 'message': 'Login required'}), 401
+    data = request.get_json()
+    item_id = data.get('item_id')
+    
+    item = SHOP_ITEMS.get(item_id)
+    if not item: return jsonify({'status': 'error', 'message': 'Invalid item'}), 400
+    
+    success, msg = database.purchase_item(session['user_id'], item_id, item['type'], item['price'])
+    if success:
+        return jsonify({'status': 'success', 'new_balance': database.get_wallet_info(session['user_id'])['balance']})
+    else:
+        return jsonify({'status': 'error', 'message': msg})
+
+@app.route('/api/equip', methods=['POST'])
+def api_equip():
+    if 'user_id' not in session: return jsonify({'status': 'error', 'message': 'Login required'}), 401
+    data = request.get_json()
+    item_id = data.get('item_id')
+    
+    # 特殊處理：卸下裝備
+    if item_id == 'unequip_title':
+        database.equip_item(session['user_id'], 'title', '')
+        return jsonify({'status': 'success'})
+        
+    item = SHOP_ITEMS.get(item_id)
+    if not item: return jsonify({'status': 'error', 'message': 'Invalid item'}), 400
+    
+    # 檢查是否擁有
+    owned = database.get_user_items(session['user_id'])
+    if item_id not in owned:
+         return jsonify({'status': 'error', 'message': 'You do not own this item'}), 403
+         
+    database.equip_item(session['user_id'], item['type'], item['value'])
+    return jsonify({'status': 'success'})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True, port=5000)

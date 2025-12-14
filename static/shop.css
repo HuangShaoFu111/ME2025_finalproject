@@ -1,79 +1,185 @@
-/* shop.css */
+/* static/shop.css - Prize Counter Version */
 
-/* 調整主容器位置，讓內容居中 */
-.shop-container {
-    width: 100%;
-    max-width: 900px; /* 稍微加寬一點讓卡片不擁擠 */
-    margin: 50px auto; /* 上下50px，左右自動置中 */
+body {
+    background: radial-gradient(circle at top, #1e1b4b 0%, #000000 100%);
+}
+
+.shop-header {
     text-align: center;
+    margin-top: 40px;
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-size: 3rem;
+    color: #fbbf24;
+    text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+    margin-bottom: 15px;
+}
+
+/* 餘額卡片 */
+.balance-card {
+    display: inline-block;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid #fbbf24;
+    border-radius: 12px;
+    padding: 15px 40px;
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
+}
+
+.balance-card .label {
+    font-size: 0.9rem;
+    color: #ffd84d;
+    letter-spacing: 2px;
+}
+
+.balance-card .amount {
+    font-family: 'Orbitron', monospace;
+    font-size: 2.5rem;
+    color: white;
+    font-weight: bold;
+    margin: 5px 0;
+}
+
+.balance-card .sub-text {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+/* 商店佈局 */
+.shop-container {
+    width: 90%;
+    max-width: 1000px;
+    margin: 30px auto 50px auto;
     padding: 0 20px;
 }
 
-/* 儲值選項網格 */
-.recharge-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* RWD 響應式設計，手機版會自動換行 */
-    gap: 30px;
-    margin-top: 40px;
+.section-title {
+    font-size: 1.5rem;
+    color: var(--accent);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
 }
 
-/* 單一選項卡片 */
-.recharge-card {
-    background: rgba(30, 41, 59, 0.6); /* 稍微加深背景增加對比 */
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    padding: 30px 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-    
-    /* 關鍵修改：讓內容垂直排列並對齊底部 */
+.items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 25px;
+}
+
+/* 商品卡片 */
+.shop-item {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: 0.3s;
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
+}
+
+.shop-item:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+}
+
+/* 頭貼預覽容器 */
+.item-preview {
+    height: 120px; /* 稍微加高 */
+    display: flex;
     align-items: center;
-    justify-content: flex-start;
-    height: 100%; /* 確保在 Grid 中填滿高度 */
-    box-sizing: border-box;
-}
-
-.recharge-card:hover {
-    transform: translateY(-8px);
-    border-color: var(--accent);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 15px var(--accent);
-}
-
-.card-price {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 2.2em;
-    color: var(--primary);
+    justify-content: center;
     margin-bottom: 15px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.title-preview {
+    font-family: 'Orbitron', sans-serif;
+    color: #fff;
     font-weight: bold;
+    font-size: 1.1rem;
+    text-shadow: 0 0 5px white;
 }
 
-/* 描述文字樣式 */
-.recharge-card p {
-    margin: 5px 0;
-    color: #e2e8f0;
+/* ⭐ 新增：頭貼懸浮動畫 ⭐ */
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+    100% { transform: translateY(0px); }
 }
 
-.card-bonus {
-    font-size: 0.95em;
-    color: var(--gold);
-    font-weight: 600;
-    margin-bottom: 10px;
+.avatar-preview img {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 0 15px rgba(255,255,255,0.2);
+    /* 啟用懸浮動畫 */
+    animation: float 3s ease-in-out infinite;
+    background: rgba(255, 255, 255, 0.05); /* 輕微背景讓透明SVG更清晰 */
 }
 
-/* 硬幣圖標 */
-.coin-icon {
-    font-size: 1.2em;
-    color: var(--gold);
-    vertical-align: middle;
-}
-
-/* 按鈕樣式優化 */
-.recharge-card .btn-primary {
-    margin-top: auto; /* 關鍵：將按鈕推到卡片最底部 */
-    width: 80%;       /* 統一按鈕寬度 */
-    padding: 10px 0;
+.item-name {
     font-weight: bold;
+    color: #fff;
+    margin-bottom: 5px;
+}
+
+.item-price {
+    color: #fbbf24;
+    font-family: 'Orbitron';
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+}
+
+/* 按鈕樣式 */
+.btn-buy {
+    width: 100%;
+    padding: 8px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border: none;
+    color: white;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.btn-buy:hover:not(:disabled) {
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+.btn-buy:disabled {
+    background: #334155;
+    color: #64748b;
+    cursor: not-allowed;
+}
+
+.btn-equip {
+    width: 100%;
+    padding: 8px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 6px;
+    cursor: pointer;
+}
+.btn-equip:hover {
+    background: var(--accent);
+    color: #000;
+}
+
+.btn-equipped {
+    width: 100%;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border-radius: 6px;
+    cursor: default;
 }
