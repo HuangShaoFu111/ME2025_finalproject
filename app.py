@@ -16,9 +16,8 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # 初始化 DB
 database.init_db()
 
-# --- 🛍️ 創意商店物品設定 (已升級為 DiceBear 9.x API) ---
+# --- 🛍️ 創意商店物品設定 ---
 SHOP_ITEMS = {
-    # === 稱號 (Titles) ===
     "title_newbie":   {"id": "title_newbie",   "type": "title",  "name": "🌱 Rookie",       "price": 100,  "value": "🌱 Rookie"},
     "title_gamer":    {"id": "title_gamer",    "type": "title",  "name": "🎮 Gamer",        "price": 500,  "value": "🎮 Gamer"},
     "title_pro":      {"id": "title_pro",      "type": "title",  "name": "🔥 Pro Player",   "price": 2000, "value": "🔥 Pro Player"},
@@ -26,57 +25,14 @@ SHOP_ITEMS = {
     "title_god":      {"id": "title_god",      "type": "title",  "name": "👑 Arcade God",   "price": 10000,"value": "👑 Arcade God"},
     "title_rich":     {"id": "title_rich",     "type": "title",  "name": "💎 Millionaire",  "price": 50000,"value": "💎 Millionaire"},
     
-    # === 特殊頭貼 (Avatars) - 質感升級版 ===
-    # 1. 像素風格 (Pixel Art) - 經典街機風
-    "avatar_pixel_red": {
-        "id": "avatar_pixel_red", 
-        "type": "avatar", 
-        "name": "👾 Pixel Warrior", 
-        "price": 1500, 
-        "value": "https://api.dicebear.com/9.x/pixel-art/svg?seed=RedFighter&backgroundColor=b6e3f4"
-    },
-    "avatar_pixel_king": {
-        "id": "avatar_pixel_king", 
-        "type": "avatar", 
-        "name": "🗡️ Pixel Lord", 
-        "price": 2500, 
-        "value": "https://api.dicebear.com/9.x/pixel-art/svg?seed=KingArthur&backgroundColor=ffdfbf"
-    },
-
-    # 2. 機器人風格 (Bottts) - 科幻風
-    "avatar_robot_scout": {
-        "id": "avatar_robot_scout", 
-        "type": "avatar", 
-        "name": "🤖 Mecha Scout", 
-        "price": 3000, 
-        "value": "https://api.dicebear.com/9.x/bottts/svg?seed=Scout01&backgroundColor=c0aede"
-    },
-    "avatar_robot_prime": {
-        "id": "avatar_robot_prime", 
-        "type": "avatar", 
-        "name": "🛡️ Guardian Bot", 
-        "price": 4500, 
-        "value": "https://api.dicebear.com/9.x/bottts/svg?seed=Optimus&backgroundColor=ffdfbf"
-    },
-
-    # 3. 太空/冒險者風格 (已替換原本跑不出來的 Cyber Punk)
-    "avatar_space_ranger": {
-        "id": "avatar_space_ranger", 
-        "type": "avatar", 
-        "name": "🚀 Galactic Rogue", 
-        "price": 6000, 
-        "value": "https://api.dicebear.com/9.x/adventurer/svg?seed=Skywalker&backgroundColor=b6e3f4"
-    },
-    "avatar_void_spirit": {
-        "id": "avatar_void_spirit", 
-        "type": "avatar", 
-        "name": "👻 Void Spirit", 
-        "price": 10000, 
-        "value": "https://api.dicebear.com/9.x/identicon/svg?seed=VoidMaster&backgroundColor=000000"
-    },
+    "avatar_pixel_red": {"id": "avatar_pixel_red", "type": "avatar", "name": "👾 Pixel Warrior", "price": 1500, "value": "https://api.dicebear.com/9.x/pixel-art/svg?seed=RedFighter&backgroundColor=b6e3f4"},
+    "avatar_pixel_king": {"id": "avatar_pixel_king", "type": "avatar", "name": "🗡️ Pixel Lord", "price": 2500, "value": "https://api.dicebear.com/9.x/pixel-art/svg?seed=KingArthur&backgroundColor=ffdfbf"},
+    "avatar_robot_scout": {"id": "avatar_robot_scout", "type": "avatar", "name": "🤖 Mecha Scout", "price": 3000, "value": "https://api.dicebear.com/9.x/bottts/svg?seed=Scout01&backgroundColor=c0aede"},
+    "avatar_robot_prime": {"id": "avatar_robot_prime", "type": "avatar", "name": "🛡️ Guardian Bot", "price": 4500, "value": "https://api.dicebear.com/9.x/bottts/svg?seed=Optimus&backgroundColor=ffdfbf"},
+    "avatar_space_ranger": {"id": "avatar_space_ranger", "type": "avatar", "name": "🚀 Galactic Rogue", "price": 6000, "value": "https://api.dicebear.com/9.x/adventurer/svg?seed=Skywalker&backgroundColor=b6e3f4"},
+    "avatar_void_spirit": {"id": "avatar_void_spirit", "type": "avatar", "name": "👻 Void Spirit", "price": 10000, "value": "https://api.dicebear.com/9.x/identicon/svg?seed=VoidMaster&backgroundColor=000000"},
 }
 
-# --- 輔助函式 ---
 def get_current_user():
     if 'user_id' in session:
         return database.get_user_by_id(session['user_id'])
@@ -91,47 +47,55 @@ def allowed_file(filename):
 
 def validate_game_logic(game_name, score, data, duration):
     # 1. 基礎檢查：遊玩時間過短 (秒殺)
-    if score > 10 and duration < 2:
-        return False, f"Time anomaly: {duration}s"
+    # 如果分數大於 0 但時間極短，視為腳本直接送出請求
+    if score > 0 and duration < 1.5:
+        return False, f"Impossible speed: {duration}s"
 
     # 2. 各遊戲專屬邏輯
     if game_name == 'snake':
         moves = int(data.get('moves', 0))
-        if score > 5 and moves < score * 0.8:
+        # 蛇每吃一個食物至少需要移動幾步，如果 moves 遠小於 score，表示可能直接改分數
+        if score > 5 and moves < score: 
             return False, f"Snake logic: Score {score} but only {moves} moves"
 
     elif game_name == 'dino':
         jumps = int(data.get('jumps', 0))
-        if score > 200 and jumps == 0:
+        if score > 100 and jumps == 0:
             return False, f"Dino logic: Score {score} with 0 jumps"
+        # 嚴格的速度限制檢查
         def calculate_dino_max(t):
+            # 根據遊戲設定的加速曲線計算理論最高分
             return 30 * t + 0.125 * (t ** 2) if t <= 180 else 9450 + (75 * (t - 180))
-        max_possible = calculate_dino_max(duration + 2) * 1.15
+        max_possible = calculate_dino_max(duration + 1) * 1.2 # 給予 20% 寬容度
         if score > max_possible:
-            return False, f"Dino speed limit: {score} > {max_possible:.0f}"
+            return False, f"Dino speed limit exceeded: {score} > {max_possible:.0f}"
 
     elif game_name == 'whac':
         hits = int(data.get('hits', 0))
         if score != hits * 10:
             return False, f"Whac math error: {hits} hits != {score}"
-        if duration > 0 and (hits / duration) > 12:
+        # 人類極限 CPS (Clicks Per Second) 檢查
+        if duration > 0 and (hits / duration) > 8: # 每秒點超過 8 下視為自動連點程式
              return False, "Whac auto-clicker detected"
 
     elif game_name == 'tetris':
         pieces = int(data.get('pieces', 0))
-        if score > 100 and pieces == 0:
-            return False, f"Tetris logic: Score {score} with 0 pieces"
+        if score > 100 and pieces < 2:
+            return False, f"Tetris logic: Score {score} with too few pieces ({pieces})"
 
     elif game_name == 'memory':
         moves = int(data.get('moves', 0))
+        # 記憶遊戲的理論最高分計算
         calc_score = max(0, 1000 - (int(duration) * 2) - (moves * 5))
-        if score > calc_score + 50:
+        # 前端可能有 combo 加分，給予較大寬容度 (+300)
+        if score > calc_score + 300:
             return False, f"Memory math: Server calc {calc_score}, Client sent {score}"
 
     elif game_name == 'shaft':
         moves = int(data.get('moves', 0))
-        if score > 20 and moves == 0:
-            return False, f"Shaft logic: Score {score} with 0 moves"
+        # 下樓梯如果不移動 (左右鍵) 幾乎無法生存很久
+        if score > 30 and moves < 5:
+            return False, f"Shaft logic: Score {score} with minimal moves"
 
     return True, "Pass"
 
@@ -275,10 +239,7 @@ def submit_score():
     
     if session.get('current_game') != game_name: return jsonify({'status': 'error'}), 400
     
-    # 清除 session 狀態前先保留變數以供檢查
-    # session.pop('game_start_time', None) # 建議：驗證完再清除，或者在此處清除皆可
-    
-    # 執行邏輯驗證 (修正：傳入真實 duration)
+    # 執行邏輯驗證
     is_valid, reason = validate_game_logic(game_name, score, data, duration=duration)
     
     # 驗證後再清除 Session
@@ -322,7 +283,6 @@ def api_equip():
     data = request.get_json()
     item_id = data.get('item_id')
     
-    # 特殊處理：卸下裝備
     if item_id == 'unequip_title':
         database.equip_item(session['user_id'], 'title', '')
         return jsonify({'status': 'success'})
@@ -330,7 +290,6 @@ def api_equip():
     item = SHOP_ITEMS.get(item_id)
     if not item: return jsonify({'status': 'error', 'message': 'Invalid item'}), 400
     
-    # 檢查是否擁有
     owned = database.get_user_items(session['user_id'])
     if item_id not in owned:
          return jsonify({'status': 'error', 'message': 'You do not own this item'}), 403
