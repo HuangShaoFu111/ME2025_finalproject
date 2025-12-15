@@ -138,12 +138,14 @@ def insert_score(user_id, game_name, score):
 def get_leaderboard(game_name):
     conn = get_db_connection()
     try:
-        # ⭐ 關鍵修改：這裡加入了 u.equipped_title 欄位
+        # ⭐ 修改重點：加入 GROUP BY s.user_id, s.score
+        # 這讓 "同一個人" 的 "相同分數" 只會出現一次，但 "不同分數" 依然可以重複上榜
         query = '''
             SELECT u.username, u.avatar, u.equipped_title, s.score, s.timestamp 
             FROM scores s
             JOIN users u ON s.user_id = u.id
             WHERE s.game_name = ?
+            GROUP BY s.user_id, s.score
             ORDER BY s.score DESC
             LIMIT 10
         '''
