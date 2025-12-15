@@ -121,7 +121,9 @@ def delete_user(user_id):
 def get_all_users():
     conn = get_db_connection()
     try:
-        users = conn.execute('SELECT id, username, avatar, is_admin FROM users ORDER BY id DESC').fetchall()
+        # 修改：補上 is_suspect (也可以補上 warning_pending)
+        # 或者直接用 SELECT * 也可以，但在生產環境中指定欄位比較好
+        users = conn.execute('SELECT id, username, avatar, is_admin, is_suspect, warning_pending FROM users ORDER BY id DESC').fetchall()
         return [dict(u) for u in users]
     finally:
         conn.close()
