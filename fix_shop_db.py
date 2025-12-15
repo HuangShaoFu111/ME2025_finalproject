@@ -21,6 +21,29 @@ def init_shop_db():
             print("✅ 新增欄位 'equipped_title'。")
         except sqlite3.OperationalError:
             print("ℹ️ 欄位 'equipped_title' 已存在，跳過。")
+        
+        # 1. 新增 is_suspect 欄位
+        try:
+            c.execute("ALTER TABLE users ADD COLUMN is_suspect INTEGER DEFAULT 0;")
+            print("✅ 成功新增欄位：is_suspect")
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" in str(e):
+                print("ℹ️  欄位 is_suspect 已存在，跳過。")
+            else:
+                print(f"❌ 新增 is_suspect 失敗：{e}")
+
+        # 2. 新增 warning_pending 欄位
+        try:
+            c.execute("ALTER TABLE users ADD COLUMN warning_pending INTEGER DEFAULT 0;")
+            print("✅ 成功新增欄位：warning_pending")
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" in str(e):
+                print("ℹ️  欄位 warning_pending 已存在，跳過。")
+            else:
+                print(f"❌ 新增 warning_pending 失敗：{e}")
+
+        conn.commit()
+        print("💾 變更已儲存。")
 
         # 3. 建立 user_items 表 (紀錄玩家擁有的物品)
         c.execute('''

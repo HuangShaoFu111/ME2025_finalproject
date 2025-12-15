@@ -147,11 +147,16 @@ def home():
 
 @app.route('/lobby')
 def lobby():
-    user = get_current_user()
-    if not user: return redirect(url_for('home'))
+    # 原始程式碼: user = get_current_user()
+    # 修改為: 強制轉型為 dict
+    row = get_current_user()
+    if not row: return redirect(url_for('home'))
+    user = dict(row) 
 
     # 檢查是否有待處理的警告
     show_warning = False
+    
+    # 現在可以使用 .get() 了
     if user.get('warning_pending'):
         show_warning = True
         database.clear_warning_pending(user['id']) # 清除標記，確保只跳一次
