@@ -1,12 +1,13 @@
 import sys
 import sqlite3
+from pathlib import Path
 from werkzeug.security import generate_password_hash
 
-DB_PATH = 'arcade.db'
+DB_PATH = Path(__file__).resolve().parent.parent / "arcade.db"
 
 
 def reset_password(username: str, new_password: str) -> None:
-    """將指定使用者的密碼重設為 new_password（會用與系統相同的方式做雜湊）"""
+    """將指定使用者的密碼重設為 new_password（用與系統相同的方式做雜湊）"""
     conn = sqlite3.connect(DB_PATH)
     try:
         c = conn.cursor()
