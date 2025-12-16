@@ -3,7 +3,7 @@
     const context = canvas.getContext('2d');
     const scoreEl = document.getElementById('score');
     const linesEl = document.getElementById('lines');
-    const levelEl = document.getElementById('level'); // New
+    const levelEl = document.getElementById('level'); 
     const startBtn = document.getElementById('startBtn');
     
     // Side panels
@@ -14,7 +14,6 @@
     const comboContainer = document.getElementById('comboContainer');
     const comboCountEl = document.getElementById('comboCount');
     const floatingTextContainer = document.getElementById('floating-text-container');
-    const gameContainer = document.querySelector('.game-container'); // For shake effect
 
     context.scale(20, 20);
     nextCtx.scale(20, 20);
@@ -40,11 +39,12 @@
     let canHold = true;
     let combo = -1;
     
-    // Particle System
-    let particles = [];
+    // Animation State
+    let clearingRows = []; // Rows currently being cleared (animation)
+    let clearAnimationTimer = 0;
+    const CLEAR_ANIMATION_DURATION = 150; // ms
 
     // Hashing for Anti-Cheat
-    // Hash now includes Level factor
     function updateHash(val) { 
         gameHash = (gameHash + val * (level + 1) * 37 + 1234) % 999999; 
     }
@@ -86,73 +86,6 @@
 
     const colors = [null, '#FF0D72', '#0DC2FF', '#0DFF72', '#F538FF', '#FF8E0D', '#FFE138', '#3877FF'];
 
-    // === Particle System ===
-    class Particle {
-        constructor(x, y, color) {
-            this.x = x;
-            this.y = y;
-            this.color = color;
-            // Random velocity
-            this.vx = (Math.random() - 0.5) * 10;
-            this.vy = (Math.random() - 0.5) * 10 - 5; // Upward bias
-            this.life = 1.0; // Alpha
-            this.decay = Math.random() * 0.03 + 0.02;
-            this.gravity = 0.5;
-        }
-
-        update() {
-            this.x += this.vx;
-            this.y += this.vy;
-            this.vy += this.gravity;
-            this.life -= this.decay;
-        }
-
-        draw(ctx) {
-            ctx.fillStyle = this.color;
-            ctx.globalAlpha = Math.max(0, this.life);
-            ctx.fillRect(this.x, this.y, 10, 10); // 10x10 px pixels relative to unscaled canvas if drawn carefully, but here we use scaled context?
-            // Wait, main context is scaled 20x20. 
-            // If I draw at x, y in scaled context, 1 unit = 20px.
-            // My particle x,y should be in grid units or pixel units?
-            // Let's use grid units for position, but draw small rects.
-            // 10px is 0.5 grid units.
-            ctx.fillRect(this.x, this.y, 0.5, 0.5);
-            ctx.globalAlpha = 1.0;
-        }
-    }
-
-    function spawnParticles(y, row) {
-        // y is row index. row is array of color indices.
-        row.forEach((value, x) => {
-            if(value !== 0) {
-                // Spawn a few particles per block
-                for(let i=0; i<3; i++) {
-                    particles.push(new Particle(x, y, colors[value]));
-                }
-            }
-        });
-    }
-
-    function updateParticles() {
-        for (let i = particles.length - 1; i >= 0; i--) {
-            particles[i].update();
-            if (particles[i].life <= 0) {
-                particles.splice(i, 1);
-            }
-        }
-    }
-
-    function drawParticles() {
-        particles.forEach(p => p.draw(context));
-    }
-
-    // === Screen Shake ===
-    function shakeScreen() {
-        gameContainer.classList.remove('shake');
-        void gameContainer.offsetWidth; // Trigger reflow
-        gameContainer.classList.add('shake');
-    }
-
     function drawMatrix(matrix, offset, isGhost = false) {
         matrix.forEach((row, y) => {
             row.forEach((value, x) => {
@@ -165,7 +98,17 @@
                         context.lineWidth = 0.05; context.strokeStyle = 'white';
                         context.strokeRect(x + offset.x, y + offset.y, 1, 1);
                     } else {
-                        context.fillStyle = colors[value];
+                        // Check if this row is being cleared
+                        const isClearing = clearingRows.includes(y + offset.y);
+                        
+                        if (isClearing) {
+                            // Flash effect: white or bright color
+                            const flashPhase = (Date.now() % 200) > 100;
+                            context.fillStyle = flashPhase ? '#FFFFFF' : colors[value];
+                        } else {
+                            context.fillStyle = colors[value];
+                        }
+                        
                         context.fillRect(x + offset.x, y + offset.y, 1, 1);
                         context.lineWidth = 0.05; context.strokeStyle = 'white';
                         context.strokeRect(x + offset.x, y + offset.y, 1, 1);
@@ -202,7 +145,7 @@
         drawPreview(nextCtx, nextPieceType);
         drawPreview(holdCtx, holdPieceType);
         
-        if (combo > 1) { // Only show combo if > 1 (Nintendo style usually doesn't emphasize combo as much but arcade does)
+        if (combo > 1) { 
             comboCountEl.innerText = combo;
             comboContainer.style.opacity = "1";
         } else {
@@ -241,13 +184,12 @@
         return false;
     }
 
-    // === SCORING LOGIC ===
-    function arenaSweep() {
-        let rowCount = 0;
+    // === SCORING & CLEAR LOGIC ===
+    function checkArena() {
         let rowsToClear = [];
 
         // Identify rows
-        for (let y = arena.length - 1; y > 0; --y) {
+        for (let y = arena.length - 1; y >= 0; --y) {
             let full = true;
             for (let x = 0; x < arena[y].length; ++x) {
                 if (arena[y][x] === 0) {
@@ -260,61 +202,70 @@
             }
         }
 
-        rowCount = rowsToClear.length;
-
-        if (rowCount > 0) {
-            // Fancy Effects
-            shakeScreen();
+        if (rowsToClear.length > 0) {
+            // Start Animation
+            clearingRows = rowsToClear;
+            clearAnimationTimer = Date.now();
             
-            // Spawn particles & Clear rows
-            rowsToClear.forEach(y => {
-                const row = arena.splice(y, 1)[0];
-                spawnParticles(y, row); // Spawn particles at that row position (approx)
-                arena.unshift(new Array(arena[0].length).fill(0));
-            });
+            // Delay the actual sweep until animation is done
+            setTimeout(() => {
+                performSweep(rowsToClear);
+                clearingRows = [];
+                playerReset(); // Reset player only AFTER animation
+            }, CLEAR_ANIMATION_DURATION);
             
-            // Score Calculation (Nintendo)
-            // Single: 40 * (n + 1)
-            // Double: 100 * (n + 1)
-            // Triple: 300 * (n + 1)
-            // Tetris: 1200 * (n + 1)
-            const baseScores = [0, 40, 100, 300, 1200];
-            let points = baseScores[rowCount] * (level + 1);
-            
-            // Combo bonus (Arcade extension, not strict Nintendo)
-            // 50 * combo * level
-            if(combo < 0) combo = 0;
-            combo++;
-            
-            if (combo > 0) points += 50 * combo * (level + 1);
-
-            score += points;
-            lines += rowCount;
-            
-            // Level Up Logic: Every 10 lines
-            const newLevel = Math.floor(lines / 10);
-            if(newLevel > level) {
-                level = newLevel;
-                // Increase speed (decrease interval)
-                // Curve: (0.8-((level-1)*0.007))^(level-1) approx or simple table
-                // Simple physics: dropInterval = max(100, 1000 - level * 100)
-                dropInterval = Math.max(70, 1000 - (level * 100)); 
-                showFloatingText("LEVEL UP!", 4, 10, '#0DFF72', '2rem');
-            }
-
-            // Text Effect
-            let text = `+${points}`;
-            if (rowCount === 4) {
-                text = "TETRIS! " + text;
-                showFloatingText(text, 2, 8, '#F538FF', '1.5rem');
-            } else {
-                showFloatingText(text, 4, 8, '#FFE138');
-            }
-            
-            updateHash(points);
-        } else {
-            combo = -1;
+            return true; // Indicate that a clear is happening
         }
+        
+        return false; // No clear
+    }
+
+    function performSweep(rowsToClear) {
+        let rowCount = rowsToClear.length;
+        
+        // Remove rows
+        // Need to sort descending to not mess up indices when splicing
+        rowsToClear.sort((a, b) => b - a);
+        
+        rowsToClear.forEach(y => {
+            arena.splice(y, 1);
+        });
+
+        // Add new empty rows at the top
+        for (let i = 0; i < rowCount; i++) {
+            arena.unshift(new Array(12).fill(0));
+        }
+
+        // Score Calculation (Nintendo)
+        const baseScores = [0, 40, 100, 300, 1200];
+        let points = baseScores[rowCount] * (level + 1);
+        
+        if(combo < 0) combo = 0;
+        combo++;
+        
+        if (combo > 0) points += 50 * combo * (level + 1);
+
+        score += points;
+        lines += rowCount;
+        
+        // Level Up Logic
+        const newLevel = Math.floor(lines / 10);
+        if(newLevel > level) {
+            level = newLevel;
+            dropInterval = Math.max(70, 1000 - (level * 100)); 
+            showFloatingText("LEVEL UP!", 4, 10, '#0DFF72', '2rem');
+        }
+
+        // Text Effect
+        let text = `+${points}`;
+        if (rowCount === 4) {
+            text = "TETRIS! " + text;
+            showFloatingText(text, 2, 8, '#F538FF', '1.5rem');
+        } else {
+            showFloatingText(text, 4, 8, '#FFE138');
+        }
+        
+        updateHash(points);
 
         scoreEl.innerText = score;
         linesEl.innerText = lines;
@@ -335,15 +286,17 @@
 
         drawMatrix(arena, {x: 0, y: 0});
         
-        const ghostPos = getGhostPos();
-        drawMatrix(player.matrix, ghostPos, true);
-        
-        drawMatrix(player.matrix, player.pos);
-        
-        drawParticles();
+        // Only draw player/ghost if not currently animating a line clear (optional, but cleaner)
+        if (clearingRows.length === 0) {
+            const ghostPos = getGhostPos();
+            drawMatrix(player.matrix, ghostPos, true);
+            drawMatrix(player.matrix, player.pos);
+        }
     }
 
     function playerRotate(dir) {
+        if(clearingRows.length > 0) return; // Lock input during animation
+        
         const pos = player.pos.x;
         let offset = 1;
         rotate(player.matrix, dir);
@@ -377,37 +330,51 @@
         const deltaTime = time - lastTime;
         lastTime = time;
         
-        dropCounter += deltaTime;
-        if (dropCounter > dropInterval) playerDrop();
+        // Pause dropping during clear animation
+        if (clearingRows.length === 0) {
+            dropCounter += deltaTime;
+            if (dropCounter > dropInterval) playerDrop();
+        }
         
-        updateParticles();
         draw();
         
         requestID = requestAnimationFrame(update);
     }
 
     function playerDrop() {
+        if(clearingRows.length > 0) return; // Lock
+        
         player.pos.y++;
         if (collide(arena, player)) {
             player.pos.y--;
             merge(arena, player);
-            arenaSweep();
-            playerReset();
-            // No drop score for passive drop
+            
+            const isClearing = checkArena();
+            if(!isClearing) {
+                combo = -1; // Reset combo if no line cleared
+                playerReset();
+            }
+            // If clearing, playerReset is called after animation in setTimeout
         }
         dropCounter = 0;
     }
 
     // Soft Drop (Manual Down)
     function playerSoftDrop() {
+        if(clearingRows.length > 0) return;
+        
         player.pos.y++;
         if (collide(arena, player)) {
             player.pos.y--;
             merge(arena, player);
-            arenaSweep();
-            playerReset();
+            
+            const isClearing = checkArena();
+            if(!isClearing) {
+                combo = -1;
+                playerReset();
+            }
         } else {
-            // Soft drop score: 1 point per cell
+            // Soft drop score
             score += 1;
             scoreEl.innerText = score;
             updateHash(1);
@@ -417,17 +384,18 @@
 
     // Hard Drop
     function playerHardDrop() {
+        if(clearingRows.length > 0) return;
+        
         let cells = 0;
         while (!collide(arena, player)) { 
             player.pos.y++; 
             cells++;
         }
         player.pos.y--; 
-        cells--; // Adjust count
+        cells--; 
         
         merge(arena, player);
         
-        // Hard drop score: 2 points per cell
         if (cells > 0) {
             const points = cells * 2;
             score += points;
@@ -435,12 +403,12 @@
             updateHash(points);
         }
 
-        arenaSweep(); 
-        playerReset();
+        const isClearing = checkArena();
+        if(!isClearing) {
+            combo = -1;
+            playerReset();
+        }
         dropCounter = 0; 
-        
-        // Shake on hard drop
-        shakeScreen();
     }
 
     function playerReset() {
@@ -461,7 +429,7 @@
     }
 
     function performHold() {
-        if (!canHold) return;
+        if (!canHold || clearingRows.length > 0) return;
         
         const currentType = player.type;
         
@@ -495,7 +463,7 @@
         level = 0;
         pieceBag = [];
         pieceCount = 0;
-        particles = [];
+        clearingRows = [];
         
         scoreEl.innerText = 0;
         linesEl.innerText = 0;
@@ -540,8 +508,8 @@
                 game_name: 'tetris', 
                 score: score, 
                 pieces: pieceCount, 
-                lines: lines, // Send lines
-                level: level, // Send level
+                lines: lines, 
+                level: level, 
                 hash: gameHash
             })
         })
