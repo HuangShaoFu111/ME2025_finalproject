@@ -412,21 +412,23 @@
         if (!isGameRunning || gameOver) return;
         if(!event.isTrusted) return;
 
-        if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].indexOf(event.code) > -1) event.preventDefault();
+        const key = event.key.toLowerCase();
 
-        if (event.keyCode === 37) { // Left
+        if (key === 'a') { // Left
             player.pos.x--;
             if (collide(arena, player)) player.pos.x++;
-        } else if (event.keyCode === 39) { // Right
+        } else if (key === 'd') { // Right
             player.pos.x++;
             if (collide(arena, player)) player.pos.x--;
-        } else if (event.keyCode === 40) { // Down
+        } else if (key === 'w') { // Drop (Soft)
             playerDrop();
-        } else if (event.keyCode === 38) { // Up
+        } else if (key === 'q') { // Rotate Left
+            playerRotate(-1);
+        } else if (key === 'e') { // Rotate Right
             playerRotate(1);
-        } else if (event.keyCode === 32) { // Space
+        } else if (key === 's') { // Hard Drop
             playerHardDrop();
-        } else if (event.keyCode === 67) { // C - Hold
+        } else if (key === 'c') { // C - Hold
             performHold();
         }
     });
