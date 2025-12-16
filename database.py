@@ -90,14 +90,26 @@ def verify_user(username, password):
 
         stored_pw = row['password']
 
+        # 統一轉成字串，避免舊資料是 INTEGER / 其他型別導致比較失敗
+        if stored_pw is None:
+            return None
+
+        if isinstance(stored_pw, bytes):
+            try:
+                stored_pw_str = stored_pw.decode('utf-8', errors='ignore')
+            except Exception:
+                stored_pw_str = str(stored_pw)
+        else:
+            stored_pw_str = str(stored_pw)
+
         # 新格式：Werkzeug 的 pbkdf2 雜湊（預設長這樣）
-        if isinstance(stored_pw, str) and stored_pw.startswith('pbkdf2:'):
-            if check_password_hash(stored_pw, password):
+        if stored_pw_str.startswith('pbkdf2:'):
+            if check_password_hash(stored_pw_str, password):
                 return row
             return None
 
-        # 舊格式：明文密碼，直接比對
-        if stored_pw == password:
+        # 舊格式：明文密碼，直接比對（含舊 INT 333 vs '333' 這種情況）
+        if stored_pw_str == password:
             # 登入成功，同步升級為雜湊密碼
             new_hash = generate_password_hash(password)
             conn.execute(
