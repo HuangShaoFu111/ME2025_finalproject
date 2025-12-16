@@ -353,9 +353,9 @@
                         }
 
                         // 根據角色 / 嫌疑狀態決定是否顯示操作按鈕
-                        const isAdmin = !!data.is_admin;
                         const isSuspect = !!data.is_suspect;
-                        if (!isAdmin && isSuspect) {
+                        // 只要是 suspect（包含管理員自己），就顯示操作按鈕
+                        if (isSuspect) {
                             modalWarnBtn.style.display = 'flex';
                             modalClearSuspectBtn.style.display = 'flex';
                         } else {
