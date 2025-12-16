@@ -102,7 +102,9 @@
     <div class="user-menu">
         <div class="user-profile-btn" style="cursor: default; border-color: var(--gold);">
             <div class="avatar-display" style="border-color: var(--gold);">
-                {% if user.avatar == 'default.png' %}
+                {% if user.avatar.startswith('http') %}
+                    <img src="{{ user.avatar }}">
+                {% elif user.avatar == 'default.png' %}
                     <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=0f172a&color=fff">
                 {% else %}
                     <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}">

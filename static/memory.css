@@ -1,3 +1,5 @@
+/* static/memory.css - RWD Update */
+
 body {
     margin: 0;
     padding: 0;
@@ -33,7 +35,11 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 600px; /* 確保寬度足夠放按鈕 */
+    /* RWD 修改 */
+    width: 100%;
+    max-width: 600px; 
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 /* === 資訊欄 HUD === */
@@ -44,12 +50,13 @@ body {
     width: 100%;
     margin-bottom: 25px;
     padding: 0 10px;
+    flex-wrap: wrap; /* RWD */
+    gap: 10px;
 }
 
 .stat-group {
     display: flex;
     gap: 20px;
-    /* 修正：分數和時間並排 */
     align-items: center;
 }
 
@@ -63,11 +70,10 @@ body {
     gap: 10px;
 }
 
-/* ⭐ 關鍵修正：動作按鈕群組並排 ⭐ */
 .action-buttons {
     display: flex;
     align-items: center;
-    gap: 10px; /* 按鈕間距 */
+    gap: 10px;
 }
 
 /* === 按鈕樣式 === */
@@ -76,7 +82,6 @@ button {
     border: none;
     transition: 0.2s;
     font-family: inherit;
-    /* 確保所有按鈕高度一致 */
     height: 45px; 
     display: flex;
     align-items: center;
@@ -106,8 +111,6 @@ button {
     transform: none;
 }
 
-/* ⭐ 修正：讓回大廳按鈕變成次要圓形按鈕 ⭐ */
-/* 移除原本的 .btn-icon，改用 .lobby-icon-btn 和 .btn-secondary 組合 */
 .lobby-icon-btn {
     width: 45px;
     height: 45px;
@@ -116,9 +119,7 @@ button {
     font-size: 1.2rem;
     background: rgba(255, 255, 255, 0.1);
     color: white;
-    /* 確保它使用 btn-secondary 的邊框風格 */
     border: 2px solid rgba(255,255,255,0.3) !important; 
-    /* 移除 clip-path */
     clip-path: none; 
 }
 .btn-secondary {
@@ -130,8 +131,7 @@ button {
 }
 .btn-secondary:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
 
-/* === 3D 卡片震動樣式 (保留) === */
-/* ... (卡片相關的 CSS 樣式) ... */
+/* === 3D 卡片震動樣式 === */
 .card {
     -webkit-user-select: none; 
     -moz-user-select: none;    
@@ -145,9 +145,7 @@ button {
     background-color: transparent;
 }
 
-.card img, .card i, .card-inner {
-    pointer-events: none; 
-}
+.card img, .card i, .card-inner { pointer-events: none; }
 
 .card-inner {
     position: relative;
@@ -210,27 +208,9 @@ button {
 }
 
 /* === Modal === */
-.modal {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.85);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 999;
-    backdrop-filter: blur(5px);
-}
+.modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 999; backdrop-filter: blur(5px); }
 .hidden { display: none; }
-.modal-content {
-    background: #1f2937;
-    padding: 40px;
-    border-radius: 20px;
-    text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
-    animation: popIn 0.3s ease-out;
-    min-width: 300px;
-}
+.modal-content { background: #1f2937; padding: 40px; border-radius: 20px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 0 50px rgba(0, 0, 0, 0.8); animation: popIn 0.3s ease-out; min-width: 300px; }
 .modal-content h2 { color: #00d4ff; margin-top: 0; font-size: 2rem; }
 .result-stats { margin: 20px 0; font-size: 1.1rem; color: #ccc; }
 .highlight { color: white; font-weight: bold; }
@@ -261,17 +241,11 @@ button {
 
 .placeholder-text {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
     color: rgba(255, 255, 255, 0.2);
-    font-size: 1.5rem;
-    font-weight: bold;
-    letter-spacing: 2px;
-    text-align: center;
-    width: 100%;
+    font-size: 1.5rem; font-weight: bold; letter-spacing: 2px;
+    text-align: center; width: 100%;
 }
-
 
 /* === 新增：底部 Lobby 按鈕樣式 === */
 .btn-lobby {
@@ -289,9 +263,20 @@ button {
     font-family: inherit;
     height: 40px; 
 }
+.btn-lobby:hover { background: rgba(255,255,255,0.1); color: white; border-color: white; }
 
-.btn-lobby:hover {
-    background: rgba(255,255,255,0.1);
-    color: white;
-    border-color: white;
+/* ⭐ RWD: 手機版適應 ⭐ */
+@media (max-width: 500px) {
+    .title { font-size: 2rem; }
+    .board {
+        grid-template-columns: repeat(4, 1fr); /* 保持 4x4 但縮小間距 */
+        gap: 8px;
+        min-height: 350px;
+    }
+    .card {
+        width: auto; /* 自動填滿網格 */
+        height: auto;
+        aspect-ratio: 1/1; /* 保持正方形 */
+    }
+    .card-front { font-size: 1.5rem; }
 }

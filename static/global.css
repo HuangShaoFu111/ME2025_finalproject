@@ -231,6 +231,74 @@ input:focus {
 }
 
 /* =================================================== */
+/* === RWD 響應式設計核心 (Responsive Design) === */
+/* =================================================== */
+
+@media (max-width: 768px) {
+    /* 全局字體調整 */
+    h1 { font-size: 2rem !important; }
+    h2 { font-size: 1.5rem !important; }
+    .title { font-size: 2rem !important; }
+
+    /* 遊戲網格改為單欄 */
+    .game-grid {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+
+    /* 調整主要容器 padding */
+    .lobby-wrapper-main {
+        padding: 0 15px !important;
+        gap: 20px !important;
+    }
+
+    /* 個人戰績欄 */
+    .personal-lobby-container {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* 右上角選單簡化 */
+    .user-menu {
+        top: 15px;
+        right: 15px;
+    }
+    .username-display {
+        display: none; /* 手機版隱藏名字，只留頭像 */
+    }
+    .user-profile-btn {
+        padding: 5px; /* 縮小 padding */
+        border-radius: 50%; /* 變圓形 */
+    }
+
+    /* 排行榜 RWD */
+    .rank-item {
+        padding: 10px 15px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    .player-info {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+    .rank-item > div:last-child {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    /* 商店與浮動按鈕 */
+    .fixed-support-btn {
+        bottom: 20px;
+        right: 20px;
+        padding: 10px 20px;
+    }
+    .fixed-support-btn span {
+        font-size: 14px;
+    }
+}
+
+/* =================================================== */
 /* === 排行榜頁面樣式 (LEADERBOARD STYLES) - 專為左右佈局設計 === */
 /* =================================================== */
 

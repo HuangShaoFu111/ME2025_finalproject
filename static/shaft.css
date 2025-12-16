@@ -1,9 +1,18 @@
-/* static/shaft.css - 寬敞舒適版 */
+/* static/shaft.css - RWD Update */
 
 /* === 全局背景設定 === */
 body {
     background: radial-gradient(circle at center, #064e3b 0%, #000000 100%);
     overflow: hidden;
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", "Roboto", sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
 }
 
 .title { 
@@ -20,8 +29,8 @@ body {
     align-items: center;
     
     /* 關鍵修改：設定寬度與 Tetris 一致，讓版面寬敞 */
-    width: 600px;
-    max-width: 95vw;
+    width: 100%;          /* RWD */
+    max-width: 600px;     /* RWD */
     
     /* 增加內距與元素間距 */
     padding: 30px;
@@ -34,6 +43,7 @@ body {
     box-shadow: 0 0 40px rgba(74, 222, 128, 0.15);
     
     margin: 20px auto;
+    box-sizing: border-box; /* RWD */
 }
 
 /* === 上方資訊列 (Depth | Button | HP) === */
@@ -49,8 +59,9 @@ body {
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     
-    /* 防止換行擠壓 */
-    flex-wrap: nowrap;
+    /* RWD: 小螢幕允許換行 */
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 /* 分數文字 */
@@ -77,13 +88,18 @@ body {
 }
 
 /* 按鈕樣式微調 */
-#startBtn {
+#startBtn, .btn-primary {
     background: linear-gradient(135deg, #4ade80, #059669); /* 綠色系按鈕 */
     box-shadow: 0 0 15px rgba(74, 222, 128, 0.4);
     padding: 10px 25px;
     white-space: nowrap;
+    border: none;
+    border-radius: 50px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
 }
-#startBtn:hover {
+#startBtn:hover, .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 0 25px rgba(74, 222, 128, 0.6);
 }
@@ -100,6 +116,15 @@ body {
     box-shadow: 
         0 0 20px rgba(74, 222, 128, 0.2),
         inset 0 0 20px rgba(0,0,0,0.5);
+        
+    /* RWD */
+    max-width: 100%;
+}
+
+canvas {
+    max-width: 100%;
+    height: auto;
+    display: block;
 }
 
 /* 頂部尖刺樣式 (維持不變) */
@@ -118,8 +143,6 @@ body {
     );
     z-index: 10;
 }
-
-/* ... (原本的 shaft.css 樣式) ... */
 
 /* === 開始畫面覆蓋層樣式 === */
 .start-screen {
@@ -145,10 +168,10 @@ body {
 .modal-content { background: #1f2937; padding: 40px; border-radius: 20px; text-align: center; border: 1px solid #4ade80; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
 .modal-content h2 { color: #ef4444; margin: 0 0 20px 0; }
 .modal-buttons { display: flex; gap: 15px; justify-content: center; margin-top: 20px;}
+.btn-secondary { background: transparent; border: 1px solid #fff; color: #fff; padding: 8px 20px; border-radius: 50px; cursor: pointer; }
 
 /* === 回大廳按鈕 === */
 .btn-lobby {
-    /* 增加一點上方距離 */
     margin-top: 10px;
     color: #94a3b8;
     background: transparent;
@@ -165,4 +188,9 @@ body {
     background: rgba(255,255,255,0.1);
     color: white;
     border-color: white;
+}
+
+@media (max-width: 500px) {
+    .title { font-size: 2rem; }
+    .game-container { padding: 15px; }
 }

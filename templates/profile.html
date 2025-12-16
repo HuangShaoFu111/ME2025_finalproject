@@ -104,7 +104,9 @@
 
         <div style="margin-bottom: 30px;">
             {% set frame_class = user.equipped_frame if user.equipped_frame else '' %}
-            {% if user.avatar == 'default.png' %}
+            {% if user.avatar.startswith('http') %}
+                <img src="{{ user.avatar }}" class="avatar-lg {{ frame_class }}">
+            {% elif user.avatar == 'default.png' %}
                 <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=0f172a&color=fff" class="avatar-lg {{ frame_class }}">
             {% else %}
                 <img src="{{ url_for('static', filename='uploads/' + user.avatar) }}" class="avatar-lg {{ frame_class }}">
@@ -119,7 +121,7 @@
 
         <div style="margin-bottom: 25px;">
             <div class="section-title">Change Avatar</div>
-            <form action="/profile" method="POST" enctype="multipart/form-data" style="display: flex; gap: 10px; flex-direction: column;">
+            <form id="uploadForm" action="/profile" method="POST" enctype="multipart/form-data" style="display: flex; gap: 10px; flex-direction: column;">
                 <input type="hidden" name="action" value="upload_avatar">
                 <input type="file" name="file" accept="image/*" required>
                 <button type="submit" class="btn-primary" style="width: 100%;">
@@ -130,13 +132,13 @@
 
         <div style="margin-bottom: 25px;">
             <div class="section-title">Quick Preset Avatars (Free)</div>
-            <form action="/profile" method="POST" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+            <form id="presetForm" action="/profile" method="POST" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
                 <input type="hidden" name="action" value="apply_preset">
-                
-                <button type="submit" class="btn-secondary" name="preset" value="pixel_blaze">🔥 Pixel Blaze</button>
-                <button type="submit" class="btn-secondary" name="preset" value="pixel_shadow">🌑 Pixel Shadow</button>
-                <button type="submit" class="btn-secondary" name="preset" value="bot_scout">🤖 Bot Scout</button>
-                <button type="submit" class="btn-secondary" name="preset" value="adventurer_nova">🌌 Adventurer Nova</button>
+                <!-- Change buttons to type="button" and handle click manually or use hidden input injection -->
+                <button type="button" class="btn-secondary preset-btn" data-value="pixel_blaze">🔥 Pixel Blaze</button>
+                <button type="button" class="btn-secondary preset-btn" data-value="pixel_shadow">🌑 Pixel Shadow</button>
+                <button type="button" class="btn-secondary preset-btn" data-value="bot_scout">🤖 Bot Scout</button>
+                <button type="button" class="btn-secondary preset-btn" data-value="adventurer_nova">🌌 Adventurer Nova</button>
             </form>
         </div>
 
@@ -168,5 +170,110 @@
         </div>
     </div>
 
+    <script>
+        // === AJAX Update Logic ===
+        
+        function showMessage(type, text) {
+            // Remove existing messages
+            const existing = document.querySelectorAll('.msg');
+            existing.forEach(el => el.remove());
+            
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${type}`;
+            msgDiv.innerText = `${type === 'success' ? '✅' : '⚠️'} ${text}`;
+            
+            const container = document.querySelector('.glass-panel');
+            const header = container.querySelector('h2');
+            header.insertAdjacentElement('afterend', msgDiv);
+            
+            // Auto hide after 3 seconds
+            setTimeout(() => {
+                msgDiv.style.opacity = '0';
+                msgDiv.style.transition = 'opacity 0.5s';
+                setTimeout(() => msgDiv.remove(), 500);
+            }, 3000);
+        }
+
+        function updateAvatars(newUrl) {
+            // Update cache buster
+            const timestamp = new Date().getTime();
+            const finalUrl = newUrl.startsWith('http') ? newUrl : `${newUrl}?v=${timestamp}`;
+            
+            // 1. Update large avatar in settings
+            const largeAvatar = document.querySelector('.avatar-lg');
+            if (largeAvatar) {
+                largeAvatar.src = finalUrl;
+                // Add simple animation
+                largeAvatar.style.transform = "scale(0.9)";
+                setTimeout(() => largeAvatar.style.transform = "scale(1)", 200);
+            }
+
+            // 2. Update small avatar in top menu
+            const menuAvatar = document.querySelector('.user-menu .avatar-display img');
+            if (menuAvatar) {
+                menuAvatar.src = finalUrl;
+            }
+        }
+
+        // Handle File Upload
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            // Show loading state
+            const btn = this.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
+            btn.innerText = "Uploading...";
+            btn.disabled = true;
+
+            fetch('/profile?ajax=1', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showMessage('success', data.message);
+                    if (data.avatar_url) updateAvatars(data.avatar_url);
+                } else {
+                    showMessage('error', data.message);
+                }
+            })
+            .catch(err => showMessage('error', "Network Error"))
+            .finally(() => {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            });
+        });
+
+        // Handle Preset Selection
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const presetValue = this.getAttribute('data-value');
+                const formData = new FormData();
+                formData.append('action', 'apply_preset');
+                formData.append('preset', presetValue);
+                
+                // Visual feedback
+                this.style.transform = "scale(0.95)";
+                setTimeout(() => this.style.transform = "", 100);
+
+                fetch('/profile?ajax=1', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showMessage('success', data.message);
+                        if (data.avatar_url) updateAvatars(data.avatar_url);
+                    } else {
+                        showMessage('error', data.message);
+                    }
+                })
+                .catch(err => showMessage('error', "Network Error"));
+            });
+        });
+    </script>
 </body>
 </html>

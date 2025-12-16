@@ -32,10 +32,13 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
     
-    /* ⭐ 新增以下三行來置中所有內容 ⭐ */
+    /* ⭐ RWD: 使用 max-width 與 width: 100% ⭐ */
+    width: 100%;
+    max-width: 450px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    box-sizing: border-box;
 }
 
 .info-bar {
@@ -43,7 +46,8 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 15px;
-    width: 400px;
+    /* ⭐ RWD: 寬度改為 100% ⭐ */
+    width: 100%;
 }
 
 .score-box {
@@ -91,12 +95,19 @@ button:hover {
     border-radius: 12px;
     background: linear-gradient(45deg, #7CFF7C, #00d4ff, #ff3b3b);
     box-shadow: 0 0 20px rgba(124, 255, 124, 0.3);
+    /* ⭐ RWD: 確保畫布容器不超出螢幕 ⭐ */
+    max-width: 100%;
+    display: flex;
+    justify-content: center;
 }
 
 canvas {
     display: block;
     background: #0d1117; /* 深色背景 */
     border-radius: 8px;
+    /* ⭐ RWD: 畫布自動縮放 ⭐ */
+    max-width: 100%;
+    height: auto;
 }
 
 /* === 右上角選單 === */
@@ -180,4 +191,9 @@ canvas {
 @keyframes popIn {
     from { transform: scale(0.8); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
+}
+
+@media (max-width: 500px) {
+    .title { font-size: 2rem; }
+    .score-box { font-size: 1.2rem; }
 }

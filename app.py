@@ -218,14 +218,21 @@ def shop_page():
 def profile():
     user = get_current_user()
     if not user: return redirect(url_for('home'))
+    
+    # Check if this is an AJAX request
+    is_ajax = request.args.get('ajax') == '1'
+    
     error, success = None, None
     if request.method == 'POST':
         action = request.form.get('action')
+        new_avatar_url = None
+        
         if action == 'update_id':
             if database.update_username(user['id'], request.form['username']):
                 session['username'] = request.form['username']
                 success = "Updated!"
             else: error = "ID taken."
+            
         elif action == 'upload_avatar':
             f = request.files.get('file')
             if f and allowed_file(f.filename):
@@ -233,18 +240,30 @@ def profile():
                 f.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
                 database.update_avatar(user['id'], fname)
                 success = "Avatar updated!"
+                new_avatar_url = url_for('static', filename='uploads/' + fname)
+            else:
+                 error = "Invalid file or format."
+
         elif action == 'apply_preset':
             preset_key = request.form.get('preset')
             preset_url = PRESET_AVATARS.get(preset_key)
             if preset_url:
                 database.update_avatar(user['id'], preset_url)
                 success = "Preset avatar applied!"
+                new_avatar_url = preset_url
             else:
                 error = "Invalid preset."
+        
         elif action == 'delete_account':
             database.delete_user(user['id'])
             session.clear()
+            if is_ajax: return jsonify({'status': 'redirect', 'url': url_for('home')})
             return redirect(url_for('home'))
+        
+        if is_ajax:
+            if error: return jsonify({'status': 'error', 'message': error})
+            return jsonify({'status': 'success', 'message': success, 'avatar_url': new_avatar_url, 'username': session.get('username')})
+
     return render_template('profile.html', user=user, error=error, success=success)
 
 @app.route('/register', methods=['GET', 'POST'])
