@@ -413,20 +413,25 @@
         if(!event.isTrusted) return;
 
         const key = event.key.toLowerCase();
+        
+        // Prevent default scrolling for arrow keys and space
+        if(["arrowup","arrowdown","arrowleft","arrowright"," "].indexOf(key) > -1) {
+            event.preventDefault();
+        }
 
-        if (key === 'a') { // Left
+        if (key === 'arrowleft') { // Left
             player.pos.x--;
             if (collide(arena, player)) player.pos.x++;
-        } else if (key === 'd') { // Right
+        } else if (key === 'arrowright') { // Right
             player.pos.x++;
             if (collide(arena, player)) player.pos.x--;
-        } else if (key === 'w') { // Drop (Soft)
+        } else if (key === 'arrowdown') { // Drop (Soft)
             playerDrop();
-        } else if (key === 'q') { // Rotate Left
+        } else if (key === 'a') { // Rotate Left
             playerRotate(-1);
-        } else if (key === 'e') { // Rotate Right
+        } else if (key === 'd') { // Rotate Right
             playerRotate(1);
-        } else if (key === 's') { // Hard Drop
+        } else if (key === ' ') { // Hard Drop (Space)
             playerHardDrop();
         } else if (key === 'c') { // C - Hold
             performHold();
