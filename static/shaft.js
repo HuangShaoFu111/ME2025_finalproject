@@ -29,6 +29,7 @@
     let lastTime = 0;
     let accumulator = 0; 
     let moves = 0; 
+    let serverNonce = "";
 
     let gameHash = 0;
     function updateHash(val) { gameHash = (gameHash + val * 13) % 999999; }
@@ -113,7 +114,12 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ game_name: 'shaft' })
-        }).catch(err => console.error("Start game tracking failed:", err));
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') serverNonce = data.nonce;
+        })
+        .catch(err => console.error("Start game tracking failed:", err));
 
         startScreen.classList.add("hidden"); 
         gameState = "PLAYING";
@@ -319,7 +325,7 @@
         }
     }
 
-    function gameOver() {
+    async function gameOver() {
         gameState = "GAMEOVER";
         
         startBtn.disabled = false;
@@ -337,6 +343,8 @@
         
         uploadStatusEl.innerText = "Uploading score...";
         
+        const secureHash = await GameSecurity.getHash(score, serverNonce);
+
         fetch('/api/submit_score', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -344,7 +352,7 @@
                 game_name: 'shaft', 
                 score: score, 
                 moves: moves,
-                hash: gameHash // 新增
+                hash: secureHash
             })
         })
         .then(res => res.json())

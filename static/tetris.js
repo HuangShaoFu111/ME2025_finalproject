@@ -33,6 +33,7 @@
     let requestID = null;
     let pieceBag = [];
     let gameHash = 0;
+    let serverNonce = "";
     
     let nextPieceType = null;
     let holdPieceType = null;
@@ -462,6 +463,10 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ game_name: 'tetris' })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') serverNonce = data.nonce;
         });
         arena.forEach(row => row.fill(0));
         score = 0;
@@ -495,7 +500,7 @@
         update();
     }
 
-    function endGame() {
+    async function endGame() {
         gameOver = true;
         isGameRunning = false;
         cancelAnimationFrame(requestID);
@@ -507,6 +512,8 @@
         modal.classList.remove("hidden");
         finalScoreEl.textContent = score;
 
+        const secureHash = await GameSecurity.getHash(score, serverNonce);
+
         fetch('/api/submit_score', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -516,7 +523,7 @@
                 pieces: pieceCount, 
                 lines: lines, 
                 level: level, 
-                hash: gameHash
+                hash: secureHash
             })
         })
         .then(res => res.json())

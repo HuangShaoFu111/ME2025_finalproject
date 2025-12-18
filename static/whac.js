@@ -20,6 +20,7 @@
     // 🛡️ 防作弊參數
     let lastClickTime = 0;
     const HUMAN_LIMIT_MS = 80; // 人類極限手速
+    let serverNonce = "";
 
     let gameHash = 0;
     function updateHash(x, y) { gameHash = (gameHash + x + y + 17) % 999999; }
@@ -56,6 +57,10 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ game_name: 'whac' })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') serverNonce = data.nonce;
         });
         
         gameHash = 0;
@@ -161,7 +166,7 @@
         setTimeout(() => boom.remove(), 450);
     }
 
-    function endGame() {
+    async function endGame() {
         isPlaying = false;
         clearInterval(timerInterval);
         gameArea.innerHTML = '';
@@ -174,6 +179,8 @@
         uploadStatusEl.textContent = "Uploading score...";
         modal.classList.remove("hidden");
 
+        const secureHash = await GameSecurity.getHash(score, serverNonce);
+
         fetch('/api/submit_score', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -181,7 +188,7 @@
                 game_name: 'whac', 
                 score: score, 
                 hits: hitCount,
-                hash: gameHash // 新增
+                hash: secureHash
             })
         })
         .then(res => res.json())

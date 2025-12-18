@@ -39,6 +39,7 @@
     let particles = [];
     let stars = [];
     let groundOffset = 0;
+    let serverNonce = "";
 
     let gameHash = 0;
     function updateHash(dt) { gameHash = (gameHash + Math.floor(dt * 1000)) % 999999; }
@@ -89,7 +90,12 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ game_name: 'dino' })
-        }).catch(console.error);
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') serverNonce = data.nonce;
+        })
+        .catch(console.error);
 
         score = 0;
         gameHash = 0;
@@ -301,7 +307,7 @@
         setTimeout(showGameOverModal, 1000);
     }
 
-    function showGameOverModal() {
+    async function showGameOverModal() {
         isDying = false;
         cancelAnimationFrame(animationId);
         
@@ -321,6 +327,8 @@
         modal.classList.remove("hidden");
         uploadStatusEl.textContent = "Uploading data...";
 
+        const secureHash = await GameSecurity.getHash(finalScore, serverNonce);
+
         fetch('/api/submit_score', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -328,7 +336,7 @@
                 game_name: 'dino', 
                 score: finalScore, 
                 jumps: jumpCount,
-                hash: gameHash // 新增
+                hash: secureHash
             })
         }).then(res => res.json())
         .then(data => {

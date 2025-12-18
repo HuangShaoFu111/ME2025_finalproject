@@ -13,6 +13,7 @@
     let score = 0, isGameRunning = false, lastTime = 0, accumulator = 0;
     let totalMoves = 0;
     let integrityCheck = 0;
+    let serverNonce = "";
 
     // 🛡️ 簡單的路徑校驗雜湊值
     let pathHash = 0;
@@ -43,6 +44,10 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ game_name: 'snake' })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') serverNonce = data.nonce;
         });
     }
 
@@ -138,11 +143,13 @@
         }
     }
 
-    function gameOver() {
+    async function gameOver() {
         isGameRunning = false;
         modal.classList.remove("hidden");
         finalScoreEl.textContent = score;
         uploadStatusEl.textContent = "Uploading...";
+
+        const secureHash = await GameSecurity.getHash(score, serverNonce);
 
         // 🛡️ 發送 pathHash 給後端驗證
         fetch('/api/submit_score', {
@@ -152,7 +159,7 @@
                 game_name: 'snake', 
                 score: score, 
                 moves: totalMoves,
-                hash: pathHash, // 新增欄位
+                hash: secureHash, 
                 check: integrityCheck
             })
         })

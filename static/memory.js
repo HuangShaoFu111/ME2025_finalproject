@@ -21,6 +21,7 @@
     let interval;
     let gameActive = false;
     let combo = 0;
+    let serverNonce = "";
 
     // 🛡️ 隱藏答案：圖示不寫在 HTML 上，而是存在這個封閉陣列
     let icons = ["🚀", "🪐", "👽", "☄️", "🌟", "🛰️", "🛸", "🌑"];
@@ -36,6 +37,10 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ game_name: 'memory' })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') serverNonce = data.nonce;
         });
 
         timer = 0;
@@ -198,7 +203,7 @@
         lockBoard = false;
     }
 
-    function gameOver() {
+    async function gameOver() {
         clearInterval(interval);
         gameActive = false;
         
@@ -215,6 +220,8 @@
         
         modal.classList.remove("hidden"); 
 
+        const secureHash = await GameSecurity.getHash(calculatedScore, serverNonce);
+
         fetch('/api/submit_score', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -222,7 +229,7 @@
                 game_name: 'memory', 
                 score: calculatedScore, 
                 moves: moves,
-                hash: gameHash // 新增
+                hash: secureHash
             })
         })
         .then(res => res.json())

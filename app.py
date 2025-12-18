@@ -3,11 +3,16 @@ import time
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from werkzeug.utils import secure_filename
 import database
+import hashlib
+import uuid
 
 app = Flask(__name__)
 # 建議在實際部署時改用環境變數提供隨機且保密的金鑰：
 #   set FLASK_SECRET_KEY=隨機字串
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-change-me')
+
+# 防作弊金鑰 (必須與 static/security.js 中的 salt 一致)
+SHARED_SALT = "ArcadeSuperSecretSalt_2025_NoCheating!"
 
 # 設定圖片上傳路徑
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
@@ -174,11 +179,10 @@ def validate_game_logic(game_name, score, data, duration):
             return False, f"Score calculation mismatch: Client {score} vs Server {calc_score}"
 
     # === Hash 檢查 (通用) ===
-    # 這是為了防禦最簡單的「重放攻擊」或「未經修改腳本的直接 API 呼叫」
+    # 注意：這裡只檢查是否有 hash，真正校驗移到 submit_score 中
     if data.get('hash') is None:
-        # 為了相容舊版前端，這裡可以只 print warning，或者強制 return False
         print(f"⚠️ Warning: Missing hash for {game_name}")
-        return False, "Missing security hash" # 若前端都更新了，建議取消註解這行
+        return False, "Missing security hash"
 
     return True, "Valid"
 
@@ -369,8 +373,15 @@ def start_game():
     data = request.get_json()
     session['game_start_time'] = time.time()
     session['current_game'] = data.get('game_name')
-    print(f"🎮 Start: {session['current_game']} by {session['username']}")
-    return jsonify({'status': 'success'})
+    
+    # 產生並儲存 Nonce (隨機字串)
+    nonce = uuid.uuid4().hex
+    session['game_nonce'] = nonce
+
+    print(f"🎮 Start: {session['current_game']} by {session['username']} | Nonce: {nonce[:8]}...")
+    
+    # 將 Nonce 回傳給前端
+    return jsonify({'status': 'success', 'nonce': nonce})
 
 @app.route('/api/submit_score', methods=['POST'])
 def submit_score():
@@ -404,6 +415,28 @@ def submit_score():
     if not isinstance(game_name, str):
         return jsonify({'status': 'error', 'message': '遊戲名稱格式錯誤'}), 400
     
+    # 3) 驗證雜湊 (Hash Check)
+    # 取出 session 中的 nonce
+    server_nonce = session.get('game_nonce')
+    client_hash = data.get('hash')
+    
+    if not server_nonce:
+        return jsonify({'status': 'error', 'message': '無效的遊戲 session (Nonce missing)'}), 400
+    
+    if not client_hash:
+        return jsonify({'status': 'error', 'message': '缺少安全驗證碼 (Hash missing)'}), 400
+
+    # 計算預期雜湊: sha256(score:nonce:salt)
+    expected_str = f"{score}:{server_nonce}:{SHARED_SALT}"
+    expected_hash = hashlib.sha256(expected_str.encode()).hexdigest()
+
+    if client_hash != expected_hash:
+        print(f"🛑 SECURITY ALERT: Hash mismatch! User: {session['username']}")
+        print(f"   Score: {score}, Nonce: {server_nonce}")
+        print(f"   Client Hash: {client_hash}")
+        print(f"   Server Hash: {expected_hash}")
+        return jsonify({'status': 'error', 'message': 'Security verification failed (Invalid Hash)'}), 400
+
     # 計算真實遊玩時間
     start_time = session.get('game_start_time')
     current_time = now_ts
@@ -418,6 +451,7 @@ def submit_score():
     # 驗證後再清除 Session
     session.pop('game_start_time', None)
     session.pop('current_game', None)
+    session.pop('game_nonce', None)
 
     if not is_valid:
         print(f"🚫 CHEAT BLOCKED: User {session['username']} | {game_name} | Score: {score} | Time: {duration:.2f}s | Reason: {reason}")
