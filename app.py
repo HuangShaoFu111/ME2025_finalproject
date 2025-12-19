@@ -5,6 +5,9 @@ from werkzeug.utils import secure_filename
 import database
 import hashlib
 import uuid
+import random
+import string
+import time
 
 app = Flask(__name__)
 # 建議在實際部署時改用環境變數提供隨機且保密的金鑰：
@@ -12,7 +15,11 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-change-me')
 
 # 防作弊金鑰 (必須與 static/security.js 中的 salt 一致)
+# 注意：若使用 Wasm，此 Salt 會被編譯進 Wasm 中
 SHARED_SALT = "ArcadeSuperSecretSalt_2025_NoCheating!"
+
+# 允許的 Timestamp 誤差 (毫秒)
+TIMESTAMP_TOLERANCE_MS = 30000  # 30秒
 
 # 設定圖片上傳路徑
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
@@ -187,6 +194,28 @@ def validate_game_logic(game_name, score, data, duration):
     return True, "Valid"
 
 # --- 頁面路由 ---
+@app.route('/dynamic/anticheat.js')
+def dynamic_anticheat():
+    # 1. 產生動態變數名稱 (Dynamic Obfuscation)
+    def random_var_name():
+        return ''.join(random.choices(string.ascii_letters, k=8))
+
+    obf = {
+        'var_score': random_var_name(),
+        'var_nonce': random_var_name(),
+        'var_ts': random_var_name(),
+        'var_salt': random_var_name(),
+        'fn_hash': random_var_name(),
+    }
+    
+    # 2. 注入伺服器端的時間戳記修正值 (雖然主要依賴客戶端時間，但可做校時)
+    server_time = int(time.time() * 1000)
+    
+    # 3. 回傳渲染後的 JS (ContentType = application/javascript)
+    # 我們將使用 render_template，需建立 templates/anticheat.js
+    response = render_template('anticheat.js', obf=obf, server_time=server_time, shared_salt=SHARED_SALT)
+    return response, 200, {'Content-Type': 'application/javascript'}
+
 @app.route('/')
 def home():
     if 'user_id' in session: return redirect(url_for('lobby'))
@@ -418,16 +447,35 @@ def submit_score():
     # 3) 驗證雜湊 (Hash Check)
     # 取出 session 中的 nonce
     server_nonce = session.get('game_nonce')
-    client_hash = data.get('hash')
+    raw_hash_payload = data.get('hash')
     
     if not server_nonce:
         return jsonify({'status': 'error', 'message': '無效的遊戲 session (Nonce missing)'}), 400
     
-    if not client_hash:
+    if not raw_hash_payload:
         return jsonify({'status': 'error', 'message': '缺少安全驗證碼 (Hash missing)'}), 400
 
-    # 計算預期雜湊: sha256(score:nonce:salt)
-    expected_str = f"{score}:{server_nonce}:{SHARED_SALT}"
+    # 支援格式: "HASH" (舊版, 不允許) 或 "HASH|TIMESTAMP" (新版)
+    if '|' in raw_hash_payload:
+        client_hash, client_ts = raw_hash_payload.split('|')
+    else:
+        # 如果前端沒有改，我們可以暫時允許或直接拒絕
+        # 為了強制執行時間戳記驗證，這裡直接拒絕
+        return jsonify({'status': 'error', 'message': '驗證碼格式過時，請重新整理頁面'}), 400
+
+    # 4) 時間戳記驗證 (Timestamp Validation)
+    try:
+        client_ts_int = int(client_ts)
+        server_ts_int = int(time.time() * 1000)
+        # 檢查是否過期 (Token 有效視窗期)
+        if abs(server_ts_int - client_ts_int) > TIMESTAMP_TOLERANCE_MS:
+             return jsonify({'status': 'error', 'message': '安全憑證已過期 (Timestamp expired)'}), 400
+    except ValueError:
+        return jsonify({'status': 'error', 'message': '時間戳記格式錯誤'}), 400
+
+    # 計算預期雜湊: sha256(score:nonce:timestamp:salt)
+    # 注意順序必須與前端/Wasm 一致
+    expected_str = f"{score}:{server_nonce}:{client_ts}:{SHARED_SALT}"
     expected_hash = hashlib.sha256(expected_str.encode()).hexdigest()
 
     if client_hash != expected_hash:
