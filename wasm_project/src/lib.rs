@@ -20,3 +20,4 @@ pub fn generate_score_hash(score: i32, nonce: &str, timestamp: f64) -> String {
 }
 
 
+
