@@ -1,7 +1,7 @@
 use wasm_bindgen.prelude::*;
 use sha2::{Sha256, Digest};
 
-// 硬編碼的 Salt，編譯後會隱藏在二進位檔中，比純文字 JS 難找
+// 硬編碼的 Salt，編譯後會隱藏在二進位檔中
 const SHARED_SALT: &str = "ArcadeSuperSecretSalt_2025_NoCheating!";
 
 #[wasm_bindgen]
